@@ -11,7 +11,7 @@ const TradeSchema = new mongoose.Schema({
   pnl: { type: Number },
   status: { type: String, enum: ['Win', 'Loss', 'Breakeven'] },
   rrr: { type: Number },
-  duration: { type: String }, // যেমন: "2h 30m"
+  duration: { type: String },
   entryDate: { type: Date, required: true },
   exitDate: { type: Date, required: true },
   notes: { type: String },

@@ -1,6 +1,6 @@
-import dbConnect from "../../../lib/mongodb";
-import Trade from "../../../models/trade"; // এখানে t ছোট হাতের
-import { calculateTradeStats } from "../../../lib/calculations"; // এখানে c ছোট হাতের
+import dbConnect from "@/lib/mongodb";
+import Trade from "@/models/Trade";
+import { calculateTradeStats } from "@/lib/calculations";
 import { NextResponse } from "next/server";
 
 export async function GET() {
@@ -24,20 +24,14 @@ export async function POST(req) {
     return NextResponse.json({ success: false, error: error.message }, { status: 400 });
   }
 }
-// DELETE: নির্দিষ্ট ট্রেড মুছে ফেলার জন্য
+
 export async function DELETE(request) {
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
-    
     await dbConnect();
-    const deletedTrade = await Trade.findByIdAndDelete(id);
-    
-    if (!deletedTrade) {
-      return NextResponse.json({ success: false, error: "Trade not found" }, { status: 404 });
-    }
-    
-    return NextResponse.json({ success: true, message: "Trade deleted" });
+    await Trade.findByIdAndDelete(id);
+    return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json({ success: false, error: error.message }, { status: 400 });
   }
