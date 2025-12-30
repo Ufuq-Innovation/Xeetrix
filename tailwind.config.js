@@ -1,5 +1,5 @@
 /** @type {import('tailwindcss').Config} */
-export default {
+const config = {
   content: [
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
     "./pages/**/*.{js,ts,jsx,tsx,mdx}",
@@ -10,8 +10,10 @@ export default {
       colors: {
         background: "#07090E",
         surface: "#11161D",
+        accent: "#3B82F6",
       },
     },
   },
   plugins: [],
 };
+export default config;
