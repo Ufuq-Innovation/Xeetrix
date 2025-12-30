@@ -1,6 +1,6 @@
-import dbConnect from "@/lib/mongodb";
-import Trade from "@/models/Trade";
-import { calculateTradeStats } from "@/lib/calculations";
+import dbConnect from "../../../lib/mongodb";
+import Trade from "../../../models/Trade"; 
+import { calculateTradeStats } from "../../../lib/calculations";
 import { NextResponse } from "next/server";
 
 export async function GET() {
