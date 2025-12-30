@@ -1,5 +1,5 @@
 import dbConnect from "../../../lib/mongodb";
-import Trade from "../../../models/Trade"; 
+import Trade from "../../../models/trade"; // t ছোট হাতের দেওয়া হয়েছে
 import { calculateTradeStats } from "../../../lib/calculations";
 import { NextResponse } from "next/server";
 
