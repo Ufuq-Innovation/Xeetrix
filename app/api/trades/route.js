@@ -1,6 +1,6 @@
 import dbConnect from "../../../lib/mongodb";
-import Trade from "../../../models/trade";
-import { calculateTradeStats } from "../../../lib/calculations";
+import Trade from "../../../models/trade"; // এখানে t ছোট হাতের
+import { calculateTradeStats } from "../../../lib/calculations"; // এখানে c ছোট হাতের
 import { NextResponse } from "next/server";
 
 export async function GET() {
