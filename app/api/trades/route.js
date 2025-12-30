@@ -24,3 +24,21 @@ export async function POST(req) {
     return NextResponse.json({ success: false, error: error.message }, { status: 400 });
   }
 }
+// DELETE: নির্দিষ্ট ট্রেড মুছে ফেলার জন্য
+export async function DELETE(request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+    
+    await dbConnect();
+    const deletedTrade = await Trade.findByIdAndDelete(id);
+    
+    if (!deletedTrade) {
+      return NextResponse.json({ success: false, error: "Trade not found" }, { status: 404 });
+    }
+    
+    return NextResponse.json({ success: true, message: "Trade deleted" });
+  } catch (error) {
+    return NextResponse.json({ success: false, error: error.message }, { status: 400 });
+  }
+}

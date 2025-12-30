@@ -9,7 +9,8 @@ import {
   ArrowDownRight, 
   BarChart3, 
   Calendar, 
-  Zap 
+  Zap,
+  Trash2 // ডিলিট আইকন যোগ করা হয়েছে
 } from 'lucide-react';
 
 export default function XeetrixDashboard() {
@@ -46,6 +47,22 @@ export default function XeetrixDashboard() {
         fetchTrades();
       }
     } catch (err) { alert("Submission failed!"); }
+  };
+
+  // ডিলিট ফাংশন
+  const deleteTrade = async (id) => {
+    if (!confirm("Are you sure you want to delete this trade?")) return;
+    try {
+      const res = await fetch(`/api/trades?id=${id}`, { method: 'DELETE' });
+      const result = await res.json();
+      if (result.success) {
+        fetchTrades();
+      } else {
+        alert("Error deleting trade");
+      }
+    } catch (err) {
+      console.error("Delete failed:", err);
+    }
   };
 
   // Calculations
@@ -218,7 +235,7 @@ export default function XeetrixDashboard() {
                     <th className="px-10 py-6">Instrument</th>
                     <th className="px-10 py-6">Side</th>
                     <th className="px-10 py-6">Result</th>
-                    <th className="px-10 py-6 text-right">Profit/Loss</th>
+                    <th className="px-10 py-6 text-right">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/[0.03]">
@@ -253,9 +270,18 @@ export default function XeetrixDashboard() {
                         </div>
                       </td>
                       <td className="px-10 py-7 text-right">
-                        <p className={`font-mono font-bold text-base ${trade.pnl >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                          {trade.pnl >= 0 ? '+' : ''}{trade.pnl?.toFixed(2)}
-                        </p>
+                        <div className="flex items-center justify-end gap-4">
+                           <p className={`font-mono font-bold text-base ${trade.pnl >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                            {trade.pnl >= 0 ? '+' : ''}{trade.pnl?.toFixed(2)}
+                          </p>
+                          <button 
+                            onClick={() => deleteTrade(trade._id)}
+                            className="text-slate-600 hover:text-red-500 transition-colors p-2 hover:bg-red-500/10 rounded-lg"
+                            title="Delete Trade"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
