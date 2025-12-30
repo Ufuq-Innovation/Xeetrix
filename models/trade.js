@@ -17,6 +17,9 @@ const TradeSchema = new mongoose.Schema({
   strategy: { type: String, default: 'SMC' },
   entryDate: { type: Date, required: true },
   exitDate: { type: Date, required: true },
+  emotion: { type: String, default: 'Neutral' },
+  chartLink: { type: String, default: '' },
 }, { timestamps: true });
 
 export default mongoose.models.Trade || mongoose.model('Trade', TradeSchema);
+
