@@ -1,5 +1,5 @@
 import dbConnect from "../../../lib/mongodb";
-import Trade from "../../../models/Trade";
+import Trade from "../../../models/trade";
 import { calculateTradeStats } from "../../../lib/calculations";
 import { NextResponse } from "next/server";
 
