@@ -1,6 +1,7 @@
 "use client";
-import { useApp } from '@/context/AppContext';
+import { useApp } from "../../context/AppContext"; // ২টি ডট হবে
 import { LayoutDashboard, ShoppingCart, Package, Wallet, Globe, Moon, Sun, Zap } from 'lucide-react';
+
 import Link from 'next/link';
 
 export default function DashboardLayout({ children }) {
