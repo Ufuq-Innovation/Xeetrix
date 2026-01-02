@@ -1,53 +1,48 @@
-# 🚀 Xeetrix - Decode Your Trading DNA
+# Xeetrix - The Ultimate E-commerce Management & Automation OS
 
-**Xeetrix** একটি আধুনিক এবং শক্তিশালী ট্রেডিং জার্নাল ওয়েব অ্যাপ্লিকেশন, যা বিশেষভাবে ফরেক্স, ক্রিপ্টো এবং স্টক ট্রেডারদের জন্য ডিজাইন করা হয়েছে। এটি ট্রেডারদের তাদের ট্রেডিং পারফরম্যান্স ট্র্যাক করতে, লজিক্যাল অ্যানালিটিক্স দেখতে এবং ট্রেডিং সাইকোলজি উন্নত করতে সাহায্য করে।
-
-> **Slogan:** Trade. Track. Triumph.
+**Xeetrix** is a high-performance, Next.js-based enterprise solution designed to streamline e-commerce operations. It bridges the gap between complex business data and seamless automation, allowing entrepreneurs to manage their inventory, orders, and finances with Islamic business values and modern efficiency.
 
 ---
 
-## 🎨 ব্র্যান্ড আইডেন্টিটি (Brand Identity)
+## 🚀 Vision
+To empower e-commerce businesses by automating repetitive tasks, ensuring data accuracy, and providing a bird's-eye view of business health—all within a single, secure dashboard.
 
-Xeetrix-এর ইউজার ইন্টারফেস তৈরি করা হয়েছে **Midnight Deep Tech** থিম অনুসরণ করে, যা ট্রেডারদের ডাটা বিশ্লেষণের জন্য একটি প্রিমিয়াম অভিজ্ঞতা প্রদান করে।
-
-- **Primary Background:** `#0B0E14` (Deep Dark)
-- **Accent Color:** `#3B82F6` (Electric Blue)
-- **Typography:** - Main Font: `Inter` / `Geist`
-  - Monospace (for numbers): `JetBrains Mono`
-
----
-
-## 🛠 টেকনোলজি স্ট্যাক (Tech Stack)
-
-Xeetrix-এর আর্কিটেকচার তৈরি করা হয়েছে আধুনিক এবং স্কেলেবল টেকনোলজি দিয়ে:
-
-- **Frontend:** [Next.js](https://nextjs.org/) (App Router)
-- **Styling:** [Tailwind CSS](https://tailwindcss.com/) & [Shadcn/UI](https://ui.shadcn.com/)
-- **Backend:** Next.js API Routes (Serverless)
-- **Database:** [MongoDB](https://www.mongodb.com/) with Mongoose ODM
-- **Authentication:** [NextAuth.js](https://next-auth.js.org/) (Planned)
-- **Charts:** [Recharts](https://recharts.org/) / [Chart.js](https://www.chartjs.org/)
+## 🛠️ Tech Stack
+- **Framework:** [Next.js](https://nextjs.org/) (App Router)
+- **Styling:** [Tailwind CSS](https://tailwindcss.com/)
+- **Database:** [Prisma](https://www.prisma.io/) with PostgreSQL/MongoDB
+- **Automation:** [Make.com](https://www.make.com/) Integration
+- **Authentication:** [Clerk](https://clerk.com/) / NextAuth.js
+- **Deployment:** [Vercel](https://vercel.com/)
 
 ---
 
-## 📂 প্রজেক্ট আর্কিটেকচার (Folder Structure)
+## ✨ Key Features
 
-প্রজেক্টটি **Clean Architecture** মেইনটেইন করে সাজানো হয়েছে:
+### 📊 Intelligent Dashboard
+- **Real-time Analytics:** Track daily sales, profit margins, and expenses at a glance.
+- **Inventory Management:** Smart stock tracking with "Low Stock" alerts.
 
+### 🤖 Automation Engine (Powered by Make.com)
+- **Auto-Invoicing:** Generates and sends PDF invoices to customers via Email/WhatsApp upon order confirmation.
+- **Order Sync:** Seamlessly syncs data between the website, Google Sheets, and Notion.
+- **Notification System:** Automatic SMS/Email updates for order status changes.
+
+### ⚖️ Ethical Finance Module
+- **Profit/Loss Tracker:** Calculates net profit by factoring in ad costs, shipping, and product sourcing.
+- **Islamic Business Compliance:** Tools to manage business transparently and fairly.
+
+---
+
+## 📁 Project Structure (Evolution from Trading Journal)
 ```text
-xeetrix/
-├── app/                  # Frontend Pages & Backend API Routes
-│   ├── api/              # API Endpoints (trades, users, stats)
-│   ├── dashboard/        # Main Dashboard UI
-│   └── layout.js         # Global Layout & Providers
-├── models/               # MongoDB Schemas (Trade, User)
-├── components/           # Reusable UI Components
-│   ├── ui/               # Base Components (Buttons, Inputs)
-│   ├── trades/           # Trade specific components (Forms, Tables)
-│   └── charts/           # Analytics & Performance Charts
-├── lib/                  # Configurations & Helper Logic
-│   ├── mongodb.js        # MongoDB Connection Pooling
-│   ├── calculations.js   # P&L, RRR & Duration Logic
-│   └── utils.js          # Tailwind Merge & Utility functions
-├── services/             # API Client logic for frontend
-└── public/               # Static assets (Logo, Icons)
+/src
+  /app (Next.js App Router)
+  /components
+    /dashboard       # Business analytics components
+    /inventory       # Stock management UI
+    /automation      # Webhook & API configurations
+  /lib
+    /prisma          # Database schema & client
+    /make-api        # Automation logic
+  /styles            # Global Tailwind configurations
