@@ -36,13 +36,16 @@ To empower e-commerce businesses by automating repetitive tasks, ensuring data a
 
 ## 📁 Project Structure (Evolution from Trading Journal)
 ```text
-/src
-  /app (Next.js App Router)
-  /components
-    /dashboard       # Business analytics components
-    /inventory       # Stock management UI
-    /automation      # Webhook & API configurations
-  /lib
-    /prisma          # Database schema & client
-    /make-api        # Automation logic
-  /styles            # Global Tailwind configurations
+xeetrix-os/
+├── app/
+│   ├── (auth)/             # Login/Signup pages
+│   ├── (dashboard)/        # Main Sidebar based app
+│   │   ├── dashboard/
+│   │   ├── orders/
+│   │   ├── layout.js       # Global Sidebar and Multi-language support
+│   ├── api/                # All backend logic
+├── components/             # Reusable UI (Sidebar, Navbar, Cards)
+├── context/                # State management (Language, Theme, Auth)
+├── lib/                    # Config files (MongoDB, Utility functions)
+├── models/                 # Database Schemas
+├── public/                 # Assets (Images, Icons)
