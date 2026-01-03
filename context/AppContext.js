@@ -1,37 +1,28 @@
 "use client";
-import { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { dictionary } from '@/lib/dictionary';
 
 const AppContext = createContext();
 
 export function AppProvider({ children }) {
-  const [lang, setLang] = useState('bn'); // Default Bangla
+  const [lang, setLang] = useState('bn');
   const [theme, setTheme] = useState('dark');
-  const t = dictionary[lang];
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    const savedLang = localStorage.getItem('lang') || 'bn';
-    const savedTheme = localStorage.getItem('theme') || 'dark';
-    setLang(savedLang);
-    setTheme(savedTheme);
+    setMounted(true); // হাইড্রেশন এরর এড়াতে
   }, []);
 
-  const toggleLang = (l) => {
-    setLang(l);
-    localStorage.setItem('lang', l);
-  };
+  const t = dictionary[lang] || dictionary['en'];
 
-  const toggleTheme = () => {
-    const newTheme = theme === 'dark' ? 'light' : 'dark';
-    setTheme(newTheme);
-    localStorage.setItem('theme', newTheme);
-  };
+  const toggleLang = (l) => setLang(l);
+  const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+
+  if (!mounted) return null;
 
   return (
-    <AppContext.Provider value={{ lang, t, toggleLang, theme, toggleTheme }}>
-      <div className={theme === 'dark' ? 'dark-theme' : 'light-theme'}>
-        {children}
-      </div>
+    <AppContext.Provider value={{ t, lang, toggleLang, theme, toggleTheme }}>
+      {children}
     </AppContext.Provider>
   );
 }
