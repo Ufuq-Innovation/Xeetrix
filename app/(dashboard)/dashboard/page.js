@@ -1,43 +1,58 @@
 "use client";
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useApp } from "@/context/AppContext";
-import { ShoppingBag, Banknote, TrendingUp, Landmark } from 'lucide-react';
+import { TrendingUp, ShoppingBag, DollarSign } from 'lucide-react';
 
-export default function DashboardPage() {
-  const context = useApp();
+export default function Dashboard() {
+  const { t } = useApp();
+  const [stats, setStats] = useState({ totalSales: 0, totalProfit: 0, totalOrders: 0 });
 
-  // ১. সরাসরি t বের করার বদলে একটি সেফ রেফারেন্স নিন
-  const t = context?.t;
-
-  // ২. যদি context না থাকে, তবে নিচের কোড রান না করে এখানেই রিটার্ন করুন
-  if (!context) {
-    return (
-      <div className="p-8 text-slate-500 font-bold">
-        Loading Dashboard...
-      </div>
-    );
-  }
-
-  // ৩. stats এর ভেতরে Optional Chaining ব্যবহার করুন
-  const stats = [
-    { label: t?.today_sales || "Today's Sales", val: '৳ 0', icon: <Banknote className="text-emerald-500"/> },
-    { label: t?.today_profit || "Today's Profit", val: '৳ 0', icon: <TrendingUp className="text-purple-500"/> },
-  ];
+  useEffect(() => {
+    // ডাটাবেস থেকে হিসাব নিয়ে আসা
+    fetch('/api/stats')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) setStats(data.stats);
+      });
+  }, []);
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-3xl font-black uppercase italic tracking-tighter text-white">
-        {t?.dashboard || "Dashboard"}
-      </h1>
+    <div className="space-y-10">
+      <h1 className="text-4xl font-black uppercase italic tracking-tighter">Overview</h1>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {stats.map((stat, i) => (
-          <div key={i} className="bg-[#11161D] p-8 rounded-[2.5rem] border border-white/5">
-            <div className="p-4 bg-white/5 rounded-2xl w-fit mb-4">{stat.icon}</div>
-            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{stat.label}</p>
-            <p className="text-2xl font-black text-white">{stat.val}</p>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Total Sales Card */}
+        <div className="bg-[#11161D] p-8 rounded-[2.5rem] border border-white/5 space-y-4">
+          <div className="w-12 h-12 bg-blue-600/20 rounded-2xl flex items-center justify-center text-blue-500">
+            <ShoppingBag size={24} />
           </div>
-        ))}
+          <div>
+            <p className="text-slate-500 font-bold text-xs uppercase tracking-widest">{t?.today_sales || "Total Sales"}</p>
+            <h2 className="text-4xl font-black">৳ {stats.totalSales}</h2>
+          </div>
+        </div>
+
+        {/* Total Profit Card */}
+        <div className="bg-[#11161D] p-8 rounded-[2.5rem] border border-white/5 space-y-4">
+          <div className="w-12 h-12 bg-green-600/20 rounded-2xl flex items-center justify-center text-green-500">
+            <TrendingUp size={24} />
+          </div>
+          <div>
+            <p className="text-slate-500 font-bold text-xs uppercase tracking-widest">{t?.today_profit || "Total Profit"}</p>
+            <h2 className="text-4xl font-black text-green-500">৳ {stats.totalProfit}</h2>
+          </div>
+        </div>
+
+        {/* Total Orders Card */}
+        <div className="bg-[#11161D] p-8 rounded-[2.5rem] border border-white/5 space-y-4">
+          <div className="w-12 h-12 bg-purple-600/20 rounded-2xl flex items-center justify-center text-purple-500">
+            <DollarSign size={24} />
+          </div>
+          <div>
+            <p className="text-slate-500 font-bold text-xs uppercase tracking-widest">Total Orders</p>
+            <h2 className="text-4xl font-black">{stats.totalOrders}</h2>
+          </div>
+        </div>
       </div>
     </div>
   );
