@@ -1,17 +1,22 @@
 "use client";
-import { useApp } from "../../context/AppContext"; // ২টি ডট হবে
-import { LayoutDashboard, ShoppingCart, Package, Wallet, Globe, Moon, Sun, Zap } from 'lucide-react';
-
+import { useApp } from "@/context/AppContext"; // আমি @ ব্যবহার করেছি, কারণ jsconfig অনুযায়ী এটাই বেস্ট
+import { LayoutDashboard, ShoppingCart, Package, Wallet, Zap, Moon, Sun } from 'lucide-react';
 import Link from 'next/link';
 
 export default function DashboardLayout({ children }) {
-  const { t, lang, toggleLang, theme, toggleTheme } = useApp();
+  const context = useApp();
 
+  // ১. সেফটি চেক: যদি কনটেক্সট না থাকে তবে বিল্ড টাইমে এরর দিবে না
+  if (!context) return null; 
+
+  const { t, lang, toggleLang, theme, toggleTheme } = context;
+
+  // ২. t অবজেক্ট আছে কি না নিশ্চিত হয়ে মেনু তৈরি করুন
   const menu = [
-    { name: t.dashboard, path: '/dashboard', icon: <LayoutDashboard size={20}/> },
-    { name: t.orders, path: '/orders', icon: <ShoppingCart size={20}/> },
-    { name: t.inventory, path: '/inventory', icon: <Package size={20}/> },
-    { name: t.finance, path: '/finance', icon: <Wallet size={20}/> },
+    { name: t?.dashboard || "Dashboard", path: '/dashboard', icon: <LayoutDashboard size={20}/> },
+    { name: t?.orders || "Orders", path: '/orders', icon: <ShoppingCart size={20}/> },
+    { name: t?.inventory || "Inventory", path: '/inventory', icon: <Package size={20}/> },
+    { name: t?.finance || "Finance", path: '/finance', icon: <Wallet size={20}/> },
   ];
 
   return (
