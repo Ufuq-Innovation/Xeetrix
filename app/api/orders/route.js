@@ -20,3 +20,15 @@ export async function POST(req) {
     return NextResponse.json({ success: false, error: e.message }, { status: 500 });
   }
 }
+
+export async function GET() {
+  try {
+    const client = await clientPromise;
+    const db = client.db("xeetrix");
+    // নতুন অর্ডারগুলো সবার আগে দেখাবে (createdAt: -1)
+    const orders = await db.collection("orders").find({}).sort({ _id: -1 }).toArray();
+    return NextResponse.json({ success: true, orders });
+  } catch (e) {
+    return NextResponse.json({ success: false, error: e.message }, { status: 500 });
+  }
+}
