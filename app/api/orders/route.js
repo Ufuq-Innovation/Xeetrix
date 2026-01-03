@@ -1,5 +1,5 @@
 import dbConnect from "@/lib/mongodb"; 
-import Order from "@/models/order";
+import Order from "@/model/orders";
 import { NextResponse } from "next/server";
 
 export async function POST(req) {
