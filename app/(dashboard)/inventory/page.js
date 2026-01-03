@@ -9,7 +9,6 @@ export default function InventoryPage() {
   const [fetching, setFetching] = useState(true);
   const [formData, setFormData] = useState({ name: '', stock: '', sku: '' });
 
-  // ডাটাবেস থেকে প্রোডাক্ট লিস্ট আনার ফাংশন
   const fetchInventory = async () => {
     try {
       const res = await fetch('/api/inventory');
@@ -28,7 +27,6 @@ export default function InventoryPage() {
     fetchInventory();
   }, []);
 
-  // সেফটি চেক: কন্টেক্সট না পেলে কিছুই রেন্ডার করবে না
   if (!context) return null;
   const { t } = context;
 
@@ -44,25 +42,27 @@ export default function InventoryPage() {
         body: JSON.stringify(formData),
       });
       
-      if (res.ok) {
+      const result = await res.json();
+      if (result.success) {
         setFormData({ name: '', stock: '', sku: '' });
-        await fetchInventory();
-        alert("প্রোডাক্ট স্টকে যোগ হয়েছে!");
+        await fetchInventory(); // লিস্ট রিফ্রেশ করা
+        alert("প্রোডাক্ট স্টকে যোগ হয়েছে!");
+      } else {
+        alert("ভুল হয়েছে: " + result.error);
       }
     } catch (error) {
-      alert("সেভ করতে সমস্যা হয়েছে!");
+      alert("সার্ভার কানেকশন এরর!");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-10 p-4 md:p-0">
       <h1 className="text-4xl font-black uppercase italic tracking-tighter text-white">
         {t?.inventory || "Inventory"}
       </h1>
 
-      {/* Add Product Form */}
       <form onSubmit={handleAddProduct} className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-[#11161D] p-6 rounded-[2rem] border border-white/5">
         <input 
           type="text" placeholder="Product Name" required 
@@ -84,7 +84,6 @@ export default function InventoryPage() {
         </button>
       </form>
 
-      {/* Inventory List */}
       <div className="bg-[#11161D] rounded-[2rem] border border-white/5 overflow-hidden">
         <table className="w-full text-left border-collapse">
           <thead className="text-[10px] text-slate-500 uppercase font-black border-b border-white/5">
@@ -113,7 +112,7 @@ export default function InventoryPage() {
                 </tr>
               ))
             ) : (
-              <tr><td colSpan="4" className="p-10 text-center text-slate-500">No products found in inventory.</td></tr>
+              <tr><td colSpan="4" className="p-10 text-center text-slate-500">No products found.</td></tr>
             )}
           </tbody>
         </table>

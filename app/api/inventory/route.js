@@ -7,10 +7,13 @@ export async function POST(req) {
     const db = client.db("xeetrix"); 
     const body = await req.json();
 
-    console.log("Received Order Data:", body); // ভার্সেল লগে ডাটা চেক করার জন্য
+    console.log("Adding to Inventory:", body);
 
-    const result = await db.collection("orders").insertOne({
-      ...body,
+    // এখানে ভুল ছিল, "orders" এর বদলে "inventory" হবে
+    const result = await db.collection("inventory").insertOne({
+      name: body.name,
+      sku: body.sku,
+      stock: Number(body.stock), // নিশ্চিত করা হচ্ছে এটা নাম্বার
       createdAt: new Date(),
     });
 
@@ -25,9 +28,9 @@ export async function GET() {
   try {
     const client = await clientPromise;
     const db = client.db("xeetrix");
-    // নতুন অর্ডারগুলো সবার আগে দেখাবে (createdAt: -1)
-    const orders = await db.collection("orders").find({}).sort({ _id: -1 }).toArray();
-    return NextResponse.json({ success: true, orders });
+    // ইনভেন্টরি কালেকশন থেকে ডাটা আনা
+    const products = await db.collection("inventory").find({}).sort({ _id: -1 }).toArray();
+    return NextResponse.json({ success: true, products });
   } catch (e) {
     return NextResponse.json({ success: false, error: e.message }, { status: 500 });
   }
