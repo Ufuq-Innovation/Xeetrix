@@ -1,6 +1,6 @@
 "use client";
 import React from 'react';
-import { useApp } from '@/context/AppContext';
+import { useApp } from "../../context/AppContext";
 import { ShoppingBag, Banknote, TrendingUp, Landmark } from 'lucide-react';
 
 export default function DashboardPage() {
