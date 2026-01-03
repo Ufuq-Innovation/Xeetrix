@@ -6,7 +6,9 @@ import Link from 'next/link';
 export default function DashboardLayout({ children }) {
   const context = useApp();
 
-  if (!context) return null; 
+if (!context) {
+    return <div className="min-h-screen bg-black text-white p-10 font-bold">AppContext Not Found!</div>;
+  }
 
   const { t, lang, toggleLang, theme, toggleTheme } = context;
 
