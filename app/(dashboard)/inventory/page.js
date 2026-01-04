@@ -7,18 +7,18 @@ export default function InventoryPage() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
-  const [formData, setFormData] = useState({ name: '', stock: '', sku: '', costPrice: '', sellingPrice: '' });
+  const [editingId, setEditingId] = useState(null); // নতুন
+  const [formData, setFormData] = useState({ 
+    name: '', stock: '', sku: '', costPrice: '', sellingPrice: '',
+    description: '', category: '', source: '' // নতুন ফিল্ডস
+  });
 
   const fetchInventory = async () => {
     try {
       const res = await fetch('/api/inventory');
       const data = await res.json();
       if (data.success) setProducts(data.products || []);
-    } catch (error) {
-      console.error("Fetch error:", error);
-    } finally {
-      setFetching(false);
-    }
+    } catch (error) { console.error("Fetch error:", error); } finally { setFetching(false); }
   };
 
   useEffect(() => { fetchInventory(); }, []);
@@ -29,18 +29,34 @@ export default function InventoryPage() {
     e.preventDefault();
     if (!formData.name || !formData.stock) return;
     setLoading(true);
+    
+    const method = editingId ? 'PUT' : 'POST'; // এডিট হলে PUT নয়তো POST
+    const bodyData = editingId ? { ...formData, id: editingId } : formData;
+
     try {
       const res = await fetch('/api/inventory', {
-        method: 'POST',
+        method: method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(bodyData),
       });
       if (res.ok) {
-        setFormData({ name: '', stock: '', sku: '', costPrice: '', sellingPrice: '' });
+        setFormData({ name: '', stock: '', sku: '', costPrice: '', sellingPrice: '', description: '', category: '', source: '' });
+        setEditingId(null);
         await fetchInventory();
-        alert("প্রোডাক্ট স্টকে যোগ হয়েছে!");
+        alert(editingId ? "প্রোডাক্ট আপডেট হয়েছে!" : "প্রোডাক্ট স্টকে যোগ হয়েছে!");
       }
-    } catch (error) { alert("সেভ করতে সমস্যা হয়েছে!"); } finally { setLoading(false); }
+    } catch (error) { alert("সমস্যা হয়েছে!"); } finally { setLoading(false); }
+  };
+
+  // এডিট ফাংশন
+  const startEdit = (product) => {
+    setEditingId(product._id);
+    setFormData({
+      name: product.name, sku: product.sku || '', stock: product.stock,
+      costPrice: product.costPrice || '', sellingPrice: product.sellingPrice || '',
+      description: product.description || '', category: product.category || '', source: product.source || ''
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (
@@ -48,24 +64,30 @@ export default function InventoryPage() {
       <h1 className="text-4xl font-black uppercase italic tracking-tighter text-white">{t?.inventory || "Inventory"}</h1>
       <form onSubmit={handleAddProduct} className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-[#11161D] p-6 rounded-[2rem] border border-white/5">
         <input type="text" placeholder="Product Name" required className="bg-white/5 p-4 rounded-xl border border-white/10 text-white outline-none focus:border-blue-600" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} />
-        <input type="text" placeholder="SKU/Code" className="bg-white/5 p-4 rounded-xl border border-white/10 text-white outline-none focus:border-blue-600" value={formData.sku} onChange={(e) => setFormData({...formData, sku: e.target.value})} />
+        <input type="text" placeholder="Category" className="bg-white/5 p-4 rounded-xl border border-white/10 text-white outline-none focus:border-blue-600" value={formData.category} onChange={(e) => setFormData({...formData, category: e.target.value})} />
+        <input type="text" placeholder="Source/Supplier" className="bg-white/5 p-4 rounded-xl border border-white/10 text-white outline-none focus:border-blue-600" value={formData.source} onChange={(e) => setFormData({...formData, source: e.target.value})} />
         <input type="number" placeholder="Stock Quantity" required className="bg-white/5 p-4 rounded-xl border border-white/10 text-white outline-none focus:border-blue-600" value={formData.stock} onChange={(e) => setFormData({...formData, stock: e.target.value})} />
         <input type="number" placeholder="Cost Price" className="bg-white/5 p-4 rounded-xl border border-white/10 text-white outline-none focus:border-blue-600" value={formData.costPrice} onChange={(e) => setFormData({...formData, costPrice: e.target.value})} />
         <input type="number" placeholder="Selling Price" className="bg-white/5 p-4 rounded-xl border border-white/10 text-white outline-none focus:border-blue-600" value={formData.sellingPrice} onChange={(e) => setFormData({...formData, sellingPrice: e.target.value})} />
-        <button type="submit" disabled={loading} className="bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all h-[58px]">{loading ? "Adding..." : "Add to Stock"}</button>
+        <textarea placeholder="Description" className="md:col-span-2 bg-white/5 p-4 rounded-xl border border-white/10 text-white outline-none focus:border-blue-600 h-[58px]" value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} />
+        <button type="submit" disabled={loading} className="bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all h-[58px]">
+          {loading ? "Processing..." : editingId ? "Update Product" : "Add to Stock"}
+        </button>
       </form>
       <div className="bg-[#11161D] rounded-[2rem] border border-white/5 overflow-hidden">
         <table className="w-full text-left border-collapse">
           <thead className="text-[10px] text-slate-500 uppercase font-black border-b border-white/5">
-            <tr><th className="p-6">Product</th><th className="p-6">Cost / Sell</th><th className="p-6">Stock</th><th className="p-6">Status</th></tr>
+            <tr><th className="p-6">Product</th><th className="p-6">Category/Source</th><th className="p-6">Stock</th><th className="p-6">Action</th></tr>
           </thead>
           <tbody className="text-white">
             {fetching ? (<tr><td colSpan="4" className="p-10 text-center">Loading...</td></tr>) : products.map((item) => (
               <tr key={item._id} className="border-b border-white/5 hover:bg-white/[0.02]">
-                <td className="p-6 font-bold">{item.name}</td>
-                <td className="p-6 text-slate-400">{item.costPrice || 0} / {item.sellingPrice || 0}</td>
+                <td className="p-6 font-bold">{item.name} <br/><span className="text-[10px] font-normal text-slate-400">{item.costPrice} / {item.sellingPrice}</span></td>
+                <td className="p-6 text-slate-400 text-xs">{item.category || 'N/A'} <br/> {item.source || 'N/A'}</td>
                 <td className="p-6 text-xl font-black">{item.stock}</td>
-                <td className="p-6">{Number(item.stock) > 5 ? <span className="text-green-500 bg-green-500/10 px-3 py-1 rounded-full text-[10px] font-bold">In Stock</span> : <span className="text-red-500 bg-red-500/10 px-3 py-1 rounded-full text-[10px] font-bold">Low</span>}</td>
+                <td className="p-6">
+                  <button onClick={() => startEdit(item)} className="text-blue-500 font-bold uppercase text-[10px] hover:underline">Edit</button>
+                </td>
               </tr>
             ))}
           </tbody>
