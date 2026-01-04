@@ -43,7 +43,7 @@ export async function GET() {
   } catch (e) { return NextResponse.json({ success: false, error: e.message }, { status: 500 }); }
 }
 
-// নতুন DELETE মেথড যোগ করা হয়েছে (হিস্ট্রি পেজ থেকে ডিলিট করার জন্য)
+// নতুন সংশোধিত DELETE মেথড (স্টক রিভার্সাল লজিকসহ)
 export async function DELETE(req) {
   try {
     const { searchParams } = new URL(req.url);
@@ -55,13 +55,29 @@ export async function DELETE(req) {
 
     const client = await clientPromise;
     const db = client.db("xeetrix");
+
+    // ১. ডিলিট করার আগে অর্ডারের ডিটেইলস খুঁজে বের করা (স্টক ফেরত দেওয়ার জন্য)
+    const orderToDelete = await db.collection("orders").findOne({ _id: new ObjectId(id) });
+
+    if (!orderToDelete) {
+      return NextResponse.json({ success: false, error: "Order not found" }, { status: 404 });
+    }
+
+    // ২. ইনভেন্টরিতে স্টক ফেরত (প্লাস) করা
+    if (orderToDelete.productId && ObjectId.isValid(orderToDelete.productId)) {
+      await db.collection("inventory").updateOne(
+        { _id: new ObjectId(orderToDelete.productId) },
+        { $inc: { stock: Number(orderToDelete.quantity) } }
+      );
+    }
     
+    // ৩. এবার মেইন অর্ডারটি ডিলিট করা
     const result = await db.collection("orders").deleteOne({ _id: new ObjectId(id) });
 
     if (result.deletedCount === 1) {
       return NextResponse.json({ success: true });
     } else {
-      return NextResponse.json({ success: false, error: "Order not found" }, { status: 404 });
+      return NextResponse.json({ success: false, error: "Delete failed" }, { status: 500 });
     }
   } catch (e) {
     return NextResponse.json({ success: false, error: e.message }, { status: 500 });
