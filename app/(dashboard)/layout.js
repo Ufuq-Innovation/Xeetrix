@@ -1,5 +1,5 @@
 import { AppProvider } from "@/context/AppContext";
-import Sidebar from "@/components/Sidebar"; // আমরা নিচে এই কম্পোনেন্টটি বানাবো
+import Sidebar from "@/components/sidebar"; // এখানে 'S' ছোট হাতের 's' করে দেওয়া হয়েছে
 
 export const metadata = {
   title: "Xeetrix - Business Control Room",
