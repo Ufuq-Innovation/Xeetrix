@@ -2,48 +2,37 @@ import { NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
 import { ObjectId } from "mongodb";
 
-// ১. সব অর্ডার দ্রুত নিয়ে আসার জন্য (GET)
-export async function GET() {
-  try {
-    const client = await clientPromise;
-    const db = client.db("xeetrix");
-
-    // শুধু প্রয়োজনীয় ডাটা আনবে (Projection), এতে স্পিড বাড়বে
-    const orders = await db.collection("orders")
-      .find({})
-      .project({ 
-        customerName: 1, 
-        customerPhone: 1, 
-        productName: 1, 
-        quantity: 1, 
-        sellingPrice: 1, 
-        netProfit: 1,
-        createdAt: 1 
-      })
-      .sort({ _id: -1 }) // নতুনগুলো আগে
-      .limit(50)         // আপাতত শেষ ৫০টি দেখাবে লোডিং টাইম কমাতে
-      .toArray();
-
-    return NextResponse.json({ success: true, orders });
-  } catch (e) {
-    return NextResponse.json({ success: false, error: e.message }, { status: 500 });
-  }
-}
-
-// ২. অর্ডার সেভ এবং স্টক আপডেট করার জন্য (POST)
 export async function POST(req) {
   try {
     const client = await clientPromise;
-    const db = client.db("xeetrix");
+    const db = client.db("xeetrix"); 
     const body = await req.json();
 
-    // ট্রানজেকশন সিমুলেশন: আগে অর্ডার সেভ
-    const orderResult = await db.collection("orders").insertOne({
+    // ১. আগে চেক করি ইনভেন্টরিতে পর্যাপ্ত স্টক আছে কি না
+    if (body.productId && ObjectId.isValid(body.productId)) {
+      const product = await db.collection("inventory").findOne({ 
+        _id: new ObjectId(body.productId) 
+      });
+
+      if (!product) {
+        return NextResponse.json({ success: false, error: "Product not found!" }, { status: 404 });
+      }
+
+      if (product.stock < Number(body.quantity)) {
+        return NextResponse.json({ 
+          success: false, 
+          error: `Insufficient stock! Available: ${product.stock}` 
+        }, { status: 400 });
+      }
+    }
+
+    // ২. স্টক থাকলে এবার অর্ডার সেভ করা
+    const result = await db.collection("orders").insertOne({
       ...body,
       createdAt: new Date(),
     });
 
-    // যদি প্রোডাক্ট আইডি থাকে, তবে স্টক থেকে বিয়োগ করা
+    // ৩. ইনভেন্টরি থেকে স্টক কমানো
     if (body.productId) {
       await db.collection("inventory").updateOne(
         { _id: new ObjectId(body.productId) },
@@ -51,7 +40,18 @@ export async function POST(req) {
       );
     }
 
-    return NextResponse.json({ success: true, id: orderResult.insertedId });
+    return NextResponse.json({ success: true, id: result.insertedId });
+  } catch (e) {
+    return NextResponse.json({ success: false, error: e.message }, { status: 500 });
+  }
+}
+
+export async function GET() {
+  try {
+    const client = await clientPromise;
+    const db = client.db("xeetrix");
+    const orders = await db.collection("orders").find({}).sort({ _id: -1 }).toArray();
+    return NextResponse.json({ success: true, orders });
   } catch (e) {
     return NextResponse.json({ success: false, error: e.message }, { status: 500 });
   }
