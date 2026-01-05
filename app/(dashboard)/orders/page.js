@@ -153,7 +153,7 @@ export default function OrdersPage() {
         <div className="bg-[#11161D] rounded-[2.5rem] border border-white/5 overflow-hidden shadow-xl">
             <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
-                    <thead className="text-[10px] text-slate-500 font-bold uppercase border-b border-white/5 bg-white/[0.02]">
+                    <thead className="text-[10px] text-slate-500 font-bold uppercase border-b border-white/5 bg-white/2">
                         <tr>
                             <th className="p-6">Customer</th>
                             <th className="p-6">Product</th>
@@ -168,7 +168,7 @@ export default function OrdersPage() {
                         ) : orders.length === 0 ? (
                             <tr><td colSpan="5" className="p-10 text-center text-slate-500 italic">No orders found.</td></tr>
                         ) : orders.map((order) => (
-                            <tr key={order._id} className="border-b border-white/5 hover:bg-white/[0.01] transition-colors">
+                            <tr key={order._id} className="border-b border-white/5 hover:bg-white/1 transition-colors">
                                 <td className="p-6">
                                     <div className="font-bold">{order.customerName}</div>
                                     <div className="text-[10px] text-slate-500">{order.customerPhone}</div>

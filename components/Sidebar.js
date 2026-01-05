@@ -66,7 +66,7 @@ export default function Sidebar() {
                 className={`flex items-center space-x-4 p-4 rounded-2xl transition-all duration-300 group ${
                   isActive 
                   ? 'bg-blue-600 text-white font-bold shadow-2xl shadow-blue-900/40' 
-                  : 'text-slate-500 hover:bg-white/[0.03] hover:text-slate-200'
+                  : 'text-slate-500 hover:bg-white/3 hover:text-slate-200'
                 }`}
               >
                 <Icon size={18} className={`${isActive ? 'text-white' : 'text-slate-600 group-hover:text-blue-500'} transition-colors`} />
@@ -80,7 +80,7 @@ export default function Sidebar() {
         <div className="pt-6 border-t border-white/5">
           <div className="flex items-center space-x-4 px-2">
             <div className="relative">
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-slate-700 to-slate-900 border border-white/10"></div>
+              <div className="w-10 h-10 rounded-2xl bg-linear-to-br from-slate-700 to-slate-900 border border-white/10"></div>
               <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-4 border-[#11161D] rounded-full"></div>
             </div>
             <div>

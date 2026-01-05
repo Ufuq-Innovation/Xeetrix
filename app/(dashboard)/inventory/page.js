@@ -76,24 +76,24 @@ export default function InventoryPage() {
       </header>
 
       {/* Product Entry Form */}
-      <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-[#11161D] p-6 rounded-[2rem] border border-white/5 shadow-2xl">
+      <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-[#11161D] p-6 rounded-4xl border border-white/5 shadow-2xl">
         <input type="text" placeholder="Product Name" required className="bg-white/5 p-4 rounded-xl border border-white/10 text-white outline-none focus:border-blue-600" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} />
         <input type="text" placeholder="Category" className="bg-white/5 p-4 rounded-xl border border-white/10 text-white outline-none focus:border-blue-600" value={formData.category} onChange={(e) => setFormData({...formData, category: e.target.value})} />
         <input type="text" placeholder="Source/Supplier" className="bg-white/5 p-4 rounded-xl border border-white/10 text-white outline-none focus:border-blue-600" value={formData.source} onChange={(e) => setFormData({...formData, source: e.target.value})} />
         <input type="number" placeholder="Stock Quantity" required className="bg-white/5 p-4 rounded-xl border border-white/10 text-white outline-none focus:border-blue-600" value={formData.stock} onChange={(e) => setFormData({...formData, stock: e.target.value})} />
         <input type="number" placeholder="Cost Price" className="bg-white/5 p-4 rounded-xl border border-white/10 text-white outline-none focus:border-blue-600" value={formData.costPrice} onChange={(e) => setFormData({...formData, costPrice: e.target.value})} />
         <input type="number" placeholder="Selling Price" className="bg-white/5 p-4 rounded-xl border border-white/10 text-white outline-none focus:border-blue-600" value={formData.sellingPrice} onChange={(e) => setFormData({...formData, sellingPrice: e.target.value})} />
-        <textarea placeholder="Description" className="md:col-span-2 bg-white/5 p-4 rounded-xl border border-white/10 text-white outline-none focus:border-blue-600 h-[58px]" value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} />
-        <button type="submit" disabled={productMutation.isPending} className="bg-blue-600 hover:bg-blue-700 text-white font-black uppercase tracking-widest rounded-xl transition-all h-[58px] shadow-lg shadow-blue-900/20">
+        <textarea placeholder="Description" className="md:col-span-2 bg-white/5 p-4 rounded-xl border border-white/10 text-white outline-none focus:border-blue-600 h-14.5" value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} />
+        <button type="submit" disabled={productMutation.isPending} className="bg-blue-600 hover:bg-blue-700 text-white font-black uppercase tracking-widest rounded-xl transition-all h-14.5 shadow-lg shadow-blue-900/20">
           {productMutation.isPending ? "PROCESSING..." : editingId ? "UPDATE PRODUCT" : "ADD TO STOCK"}
         </button>
       </form>
 
       {/* Inventory Table */}
-      <div className="bg-[#11161D] rounded-[2rem] border border-white/5 overflow-hidden shadow-xl">
+      <div className="bg-[#11161D] rounded-4xl border border-white/5 overflow-hidden shadow-xl">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
-            <thead className="text-[10px] text-slate-500 uppercase font-black border-b border-white/5 bg-white/[0.02]">
+            <thead className="text-[10px] text-slate-500 uppercase font-black border-b border-white/5 bg-white/2">
               <tr>
                 <th className="p-6">Product</th>
                 <th className="p-6">Category/Source</th>
@@ -107,7 +107,7 @@ export default function InventoryPage() {
               ) : products.length === 0 ? (
                 <tr><td colSpan="4" className="p-10 text-center text-slate-500 italic">No products in stock.</td></tr>
               ) : products.map((item) => (
-                <tr key={item._id} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors">
+                <tr key={item._id} className="border-b border-white/5 hover:bg-white/2 transition-colors">
                   <td className="p-6 font-bold">
                     <div className="text-white">{item.name}</div>
                     <div className="text-[10px] font-normal text-slate-500 uppercase tracking-tighter">CP: ৳{item.costPrice} | SP: ৳{item.sellingPrice}</div>
