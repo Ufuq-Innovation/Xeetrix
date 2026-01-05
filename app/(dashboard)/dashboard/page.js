@@ -5,9 +5,6 @@ import { useApp } from "@/context/AppContext";
 import { useQuery } from "@tanstack/react-query";
 import { TrendingUp, ShoppingBag, DollarSign } from 'lucide-react';
 
-/**
- * Fetcher function to get dashboard analytics from the API
- */
 const fetchDashboardStats = async () => {
   const res = await fetch('/api/dashboard');
   if (!res.ok) throw new Error('Network response was not ok');
@@ -18,9 +15,6 @@ const fetchDashboardStats = async () => {
 export default function Dashboard() {
   const { t } = useApp();
 
-  /** * React Query implementation 
-   * Replaces useEffect and manual state management
-   */
   const { data: stats, isLoading, isError } = useQuery({
     queryKey: ['dashboardStats'],
     queryFn: fetchDashboardStats,
@@ -31,14 +25,11 @@ export default function Dashboard() {
     <div className="space-y-10 p-4 md:p-0">
       <header>
         <h1 className="text-4xl font-black uppercase italic tracking-tighter text-white">
-          Overview
+          {t?.overview || "Overview"}
         </h1>
       </header>
       
-      {/* KPI Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        
-        {/* Total Sales Card */}
         <div className="bg-[#11161D] p-8 rounded-[2.5rem] border border-white/5 space-y-4 hover:border-blue-500/30 transition-all duration-300">
           <div className="w-12 h-12 bg-blue-600/20 rounded-2xl flex items-center justify-center text-blue-500">
             <ShoppingBag size={24} />
@@ -53,7 +44,6 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Total Net Profit Card */}
         <div className="bg-[#11161D] p-8 rounded-[2.5rem] border border-white/5 space-y-4 hover:border-green-500/30 transition-all duration-300">
           <div className="w-12 h-12 bg-green-600/20 rounded-2xl flex items-center justify-center text-green-500">
             <TrendingUp size={24} />
@@ -68,7 +58,6 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Total Orders Volume Card */}
         <div className="bg-[#11161D] p-8 rounded-[2.5rem] border border-white/5 space-y-4 hover:border-purple-500/30 transition-all duration-300">
           <div className="w-12 h-12 bg-purple-600/20 rounded-2xl flex items-center justify-center text-purple-500">
             <DollarSign size={24} />
@@ -82,16 +71,15 @@ export default function Dashboard() {
         </div>
       </div>
       
-      {/* Dynamic Status Indicators */}
       {isLoading && (
         <p className="text-center text-slate-500 animate-pulse uppercase text-xs tracking-widest">
-          Synchronizing Real-time Data...
+          {t?.syncing_data || "Synchronizing Real-time Data..."}
         </p>
       )}
 
       {isError && (
         <p className="text-center text-red-500 uppercase text-xs tracking-widest">
-          Failed to fetch business analytics.
+          {t?.fetch_error || "Failed to fetch business analytics."}
         </p>
       )}
     </div>

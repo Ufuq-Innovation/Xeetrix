@@ -10,7 +10,6 @@ export default function CourierPage() {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = React.useState("");
 
-  // 1. Fetch Orders with React Query (Syncing with History & Dashboard)
   const { data: orders = [], isLoading } = useQuery({
     queryKey: ['orders'],
     queryFn: async () => {
@@ -20,7 +19,6 @@ export default function CourierPage() {
     }
   });
 
-  // 2. Status Transition Mutation
   const updateStatusMutation = useMutation({
     mutationFn: async ({ id, newStatus }) => {
       const res = await fetch('/api/orders', {
@@ -32,14 +30,12 @@ export default function CourierPage() {
       return res.json();
     },
     onSuccess: () => {
-      // Refreshing all relevant queries
       queryClient.invalidateQueries(['orders']);
       queryClient.invalidateQueries(['dashboardStats']);
       queryClient.invalidateQueries(['inventory']);
     }
   });
 
-  // Filtering Logic
   const filteredOrders = orders.filter(order => 
     order.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     order.customerPhone.includes(searchTerm) ||
@@ -67,7 +63,7 @@ export default function CourierPage() {
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
           <input 
             type="text" 
-            placeholder="Search by name, phone or ref..." 
+            placeholder={t?.search_placeholder || "Search by name, phone or ref..."} 
             className="w-full bg-[#11161D] border border-white/10 rounded-xl py-3 pl-12 pr-4 text-white outline-none focus:border-blue-500 transition-all"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -80,31 +76,31 @@ export default function CourierPage() {
           <table className="w-full text-left border-collapse">
             <thead className="text-[10px] text-slate-500 font-bold uppercase border-b border-white/5 bg-white/2">
               <tr>
-                <th className="p-6">Order Details</th>
-                <th className="p-6">Customer Info</th>
-                <th className="p-6">Current Status</th>
-                <th className="p-6 text-right">Action</th>
+                <th className="p-6">{t?.order_details || "Order Details"}</th>
+                <th className="p-6">{t?.customer_info || "Customer Info"}</th>
+                <th className="p-6">{t?.current_status || "Current Status"}</th>
+                <th className="p-6 text-right">{t?.action || "Action"}</th>
               </tr>
             </thead>
             <tbody className="text-white">
               {isLoading ? (
                 <tr>
                   <td colSpan="4" className="p-20 text-center text-slate-500 font-bold uppercase tracking-widest animate-pulse">
-                    Synchronizing Delivery Pipeline...
+                    {t?.syncing_pipeline || "Synchronizing Delivery Pipeline..."}
                   </td>
                 </tr>
               ) : filteredOrders.length === 0 ? (
                 <tr>
                   <td colSpan="4" className="p-20 text-center text-slate-500 uppercase text-xs font-bold italic">
-                    No active parcels found.
+                    {t?.no_parcels || "No active parcels found."}
                   </td>
                 </tr>
               ) : filteredOrders.map((order) => (
                 <tr key={order._id} className="border-b border-white/5 hover:bg-white/1 transition-colors">
                   <td className="p-6">
-                    <div className="font-bold text-white uppercase tracking-tight">{order.productName || "Product Name"}</div>
+                    <div className="font-bold text-white uppercase tracking-tight">{order.productName}</div>
                     <div className="text-[10px] text-slate-500 font-medium italic mt-1">
-                      QTY: {order.quantity} | REF: {order._id.slice(-6).toUpperCase()}
+                      {t?.qty || "QTY"}: {order.quantity} | {t?.ref || "REF"}: {order._id.slice(-6).toUpperCase()}
                     </div>
                   </td>
                   <td className="p-6">
@@ -113,7 +109,7 @@ export default function CourierPage() {
                   </td>
                   <td className="p-6">
                     <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase border ${getStatusStyle(order.status)}`}>
-                      {order.status || 'Pending'}
+                      {t?.[order.status.toLowerCase()] || order.status}
                     </span>
                   </td>
                   <td className="p-6 text-right">
@@ -123,10 +119,10 @@ export default function CourierPage() {
                       value={order.status || 'Pending'}
                       onChange={(e) => updateStatusMutation.mutate({ id: order._id, newStatus: e.target.value })}
                     >
-                      <option value="Pending">🕒 Pending</option>
-                      <option value="Shipped">📦 Shipped</option>
-                      <option value="Delivered">✅ Delivered</option>
-                      <option value="Returned">🔄 Returned</option>
+                      <option value="Pending">🕒 {t?.pending || "Pending"}</option>
+                      <option value="Shipped">📦 {t?.shipped || "Shipped"}</option>
+                      <option value="Delivered">✅ {t?.delivered || "Delivered"}</option>
+                      <option value="Returned">🔄 {t?.returned || "Returned"}</option>
                     </select>
                   </td>
                 </tr>
