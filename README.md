@@ -34,18 +34,34 @@ To empower e-commerce businesses by automating repetitive tasks, ensuring data a
 
 ---
 
-## 📁 Project Structure (Evolution from Trading Journal)
-```text
-xeetrix-os/
-├── app/
-│   ├── (auth)/             # Login/Signup pages
-│   ├── (dashboard)/        # Main Sidebar based app
-│   │   ├── dashboard/
-│   │   ├── orders/
-│   │   ├── layout.js       # Global Sidebar and Multi-language support
-│   ├── api/                # All backend logic
-├── components/             # Reusable UI (Sidebar, Navbar, Cards)
-├── context/                # State management (Language, Theme, Auth)
-├── lib/                    # Config files (MongoDB, Utility functions)
-├── models/                 # Database Schemas
-├── public/                 # Assets (Images, Icons)
+## 📁 xeetrix-saas/
+├── public/
+│   └── locales/                # i18n Dictionary (121 Keys synchronized)
+│       ├── en/common.json      # English (Master Locale)
+│       ├── bn/common.json      # Bengali
+│       ├── ar/common.json      # Arabic (RTL)
+│       ├── ur/common.json      # Urdu (RTL)
+│       ├── ps/common.json      # Pashto (RTL)
+│       ├── hi/common.json      # Hindi
+│       ├── es/common.json      # Spanish
+│       ├── ru/common.json      # Russian
+│       ├── zh/common.json      # Chinese
+│       └── ja/common.json      # Japanese
+├── src/
+│   ├── app/                    # Next.js App Router
+│   │   ├── dashboard/          # Analytics Overview Page
+│   │   ├── api/                # API Routes (e.g., /api/dashboard)
+│   │   ├── globals.css         # Global Styling & Tailwind Imports
+│   │   └── layout.js           # Root Layout with Context & i18n Providers
+│   ├── components/
+│   │   ├── Sidebar.jsx         # Multilingual Navigation Sidebar
+│   │   └── ...                 # Other UI Components
+│   ├── context/
+│   │   └── AppContext.js       # Global State Management (Lang, RTL, Theme)
+│   ├── lib/
+│   │   └── i18n.js             # i18next Client-side Configuration
+│   └── utils/                  # Helper functions
+├── setup-locales.js            # Node script for maintaining 121 key parity
+├── package.json                # Project Dependencies (Next, TanStack Query, i18next)
+├── tailwind.config.js          # Custom Design Tokens
+└── README.md                   # Enterprise Documentation
