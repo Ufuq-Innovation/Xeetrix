@@ -6,7 +6,8 @@ import { dictionary } from '@/lib/dictionary';
 const AppContext = createContext(null);
 
 /**
- * AppProvider provides global state for language and theme management.
+ * AppProvider: Global State Management
+ * Handles Language Persistence and Theme switching.
  */
 export function AppProvider({ children }) {
   const [lang, setLang] = useState('bn');
@@ -14,24 +15,38 @@ export function AppProvider({ children }) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    /** Ensure the component is mounted to prevent hydration mismatch */
+    // 1. Load saved preferences from LocalStorage on mount
+    const savedLang = localStorage.getItem('xeetrix_lang');
+    const savedTheme = localStorage.getItem('xeetrix_theme');
+
+    if (savedLang) setLang(savedLang);
+    if (savedTheme) setTheme(savedTheme);
+
     setMounted(true);
   }, []);
 
+  // 2. Persist language changes
+  const toggleLang = (l) => {
+    setLang(l);
+    localStorage.setItem('xeetrix_lang', l);
+  };
+
+  // 3. Persist theme changes
+  const toggleTheme = () => {
+    const newTheme = theme === 'dark' ? 'light' : 'dark';
+    setTheme(newTheme);
+    localStorage.setItem('xeetrix_theme', newTheme);
+  };
+
   const t = dictionary[lang] || dictionary['bn'];
 
-  const toggleLang = (l) => setLang(l);
-  const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
-
-  /** Return null during SSR to avoid hydration errors */
-  if (!mounted) {
-    return null;
-  }
+  // Prevent Hydration mismatch by not rendering until mounted
+  if (!mounted) return null;
 
   return (
     <AppContext.Provider value={{ t, lang, toggleLang, theme, toggleTheme }}>
       <div className={theme}>
-        <div className="bg-white dark:bg-[#0f172a] min-h-screen text-slate-900 dark:text-slate-100 transition-colors duration-300">
+        <div className="bg-[#090E14] dark:bg-[#090E14] min-h-screen text-slate-900 dark:text-slate-100 transition-colors duration-300">
           {children}
         </div>
       </div>
@@ -39,9 +54,6 @@ export function AppProvider({ children }) {
   );
 }
 
-/**
- * Custom hook to use the AppContext
- */
 export const useApp = () => {
   const context = useContext(AppContext);
   if (!context) {
