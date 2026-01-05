@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useTranslation } from 'react-i18next'; // Hook for reactive translation
+import { useTranslation } from 'react-i18next';
 import { 
   LayoutDashboard, ShoppingCart, Wallet, Package, 
   Truck, Megaphone, BarChart, Settings, Menu, X, PlusCircle 
@@ -15,18 +15,18 @@ export default function Sidebar() {
   const { t } = useTranslation('common'); 
 
   /**
-   * Sidebar navigation menu items configuration.
-   * All labels are mapped to translation keys for multi-language support.
+   * বাসেত ভাই, এখানে আমি কী (Key) গুলো আপনার ১২১টি শব্দের সাথে মিলিয়ে দিয়েছি।
+   * যেমন: 'create_new_order', 'order_history' ইত্যাদি।
    */
   const menuItems = [
-    { key: 'dashboard', path: '/dashboard', icon: LayoutDashboard },
-    { key: 'new_order', path: '/orders', icon: PlusCircle },
-    { key: 'history', path: '/history', icon: ShoppingCart },
+    { key: '/dashboard', path: '/dashboard', icon: LayoutDashboard },
+    { key: 'create_new_order', path: '/orders', icon: PlusCircle },
+    { key: 'order_history', path: '/history', icon: ShoppingCart },
     { key: 'inventory', path: '/inventory', icon: Package },
-    { key: 'finance', path: '/finance', icon: Wallet },
-    { key: 'courier', path: '/courier', icon: Truck },
-    { key: 'marketing', path: '/marketing', icon: Megaphone },
-    { key: 'reports', path: '/reports', icon: BarChart },
+    { key: 'finance_control', path: '/finance', icon: Wallet },
+    { key: 'courier_management', path: '/courier', icon: Truck },
+    { key: 'marketing_center', path: '/marketing', icon: Megaphone },
+    { key: 'business_analytics', path: '/reports', icon: BarChart },
     { key: 'settings', path: '/settings', icon: Settings },
   ];
 
@@ -79,6 +79,7 @@ export default function Sidebar() {
               >
                 <Icon size={18} className={`${isActive ? 'text-white' : 'text-slate-600 group-hover:text-blue-500'} transition-colors`} />
                 <span className="text-[11px] uppercase font-black tracking-widest">
+                  {/* বাসেত ভাই, এখানে t(item.key) নিশ্চিত করছে যে অনুবাদ ফাইল থেকে ডাটা আসবে */}
                   {t(item.key)}
                 </span>
               </Link>
