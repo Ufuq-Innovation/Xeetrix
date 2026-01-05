@@ -1,51 +1,50 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { dictionary } from '@/lib/dictionary';
+import { useTranslation } from 'react-i18next';
+import '../lib/i18n'; // Importing the i18n configuration
 
 const AppContext = createContext(null);
 
 /**
  * AppProvider: Global State Management
- * Handles Language Persistence and Theme switching.
+ * Integrated with i18next for multi-language scaling and RTL support.
  */
 export function AppProvider({ children }) {
-  const [lang, setLang] = useState('bn');
+  const { t, i18n } = useTranslation();
   const [theme, setTheme] = useState('dark');
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    // 1. Load saved preferences from LocalStorage on mount
-    const savedLang = localStorage.getItem('xeetrix_lang');
-    const savedTheme = localStorage.getItem('xeetrix_theme');
-
-    if (savedLang) setLang(savedLang);
-    if (savedTheme) setTheme(savedTheme);
-
+    // Sync language and theme from localStorage on initial mount
+    const savedLang = localStorage.getItem('xeetrix_lang') || 'bn';
+    const savedTheme = localStorage.getItem('xeetrix_theme') || 'dark';
+    
+    i18n.changeLanguage(savedLang);
+    setTheme(savedTheme);
     setMounted(true);
-  }, []);
+  }, [i18n]);
 
-  // 2. Persist language changes
+  // Handle language switching with persistence
   const toggleLang = (l) => {
-    setLang(l);
+    i18n.changeLanguage(l);
     localStorage.setItem('xeetrix_lang', l);
   };
 
-  // 3. Persist theme changes
+  // Handle theme switching with persistence
   const toggleTheme = () => {
     const newTheme = theme === 'dark' ? 'light' : 'dark';
     setTheme(newTheme);
     localStorage.setItem('xeetrix_theme', newTheme);
   };
 
-  const t = dictionary[lang] || dictionary['bn'];
-
-  // Prevent Hydration mismatch by not rendering until mounted
+  // Prevent hydration mismatch
   if (!mounted) return null;
 
   return (
-    <AppContext.Provider value={{ t, lang, toggleLang, theme, toggleTheme }}>
-      <div className={theme}>
+    <AppContext.Provider value={{ t, lang: i18n.language, toggleLang, theme, toggleTheme }}>
+      {/* The 'dir' attribute automatically handles RTL for Arabic, Urdu, Pashto */}
+      <div dir={i18n.dir()} className={theme}>
         <div className="bg-[#090E14] dark:bg-[#090E14] min-h-screen text-slate-900 dark:text-slate-100 transition-colors duration-300">
           {children}
         </div>
