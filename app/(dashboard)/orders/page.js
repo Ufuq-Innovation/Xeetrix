@@ -1,13 +1,12 @@
 "use client";
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useApp } from "@/context/AppContext";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ShoppingBag, Trash2, Clock } from 'lucide-react';
 
 export default function OrdersPage() {
   const context = useApp();
-  const [loading, setLoading] = useState(false);
-  const [orders, setOrders] = useState([]); // হিস্ট্রির জন্য
-  const [inventory, setInventory] = useState([]);
+  const queryClient = useQueryClient();
   const [formData, setFormData] = useState({
     customerName: '',
     customerPhone: '',
@@ -21,24 +20,58 @@ export default function OrdersPage() {
     otherExpense: 0,
   });
 
-  // ডাটা লোড করা (ইনভেন্টরি এবং অর্ডার হিস্ট্রি)
-  const fetchData = async () => {
-    try {
-      const [resInv, resOrders] = await Promise.all([
-        fetch('/api/inventory'),
-        fetch('/api/orders')
-      ]);
-      const dataInv = await resInv.json();
-      const dataOrders = await resOrders.json();
-      
-      if (dataInv.success) setInventory(dataInv.products || []);
-      if (dataOrders.success) setOrders(dataOrders.orders || []);
-    } catch (error) {
-      console.error("Data fetch failed", error);
+  // 1. Fetch Inventory Data
+  const { data: inventory = [] } = useQuery({
+    queryKey: ['inventory'],
+    queryFn: async () => {
+      const res = await fetch('/api/inventory');
+      const data = await res.json();
+      return data.success ? data.products : [];
     }
-  };
+  });
 
-  useEffect(() => { fetchData(); }, []);
+  // 2. Fetch Orders History
+  const { data: orders = [], isLoading: ordersLoading } = useQuery({
+    queryKey: ['orders'],
+    queryFn: async () => {
+      const res = await fetch('/api/orders');
+      const data = await res.json();
+      return data.success ? data.orders : [];
+    }
+  });
+
+  // 3. Create Order Mutation
+  const createOrderMutation = useMutation({
+    mutationFn: async (newOrder) => {
+      const res = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newOrder),
+      });
+      if (!res.ok) throw new Error('Order failed');
+      return res.json();
+    },
+    onSuccess: () => {
+      // Invalidate and refetch orders and dashboard stats
+      queryClient.invalidateQueries(['orders']);
+      queryClient.invalidateQueries(['dashboardStats']);
+      queryClient.invalidateQueries(['inventory']);
+      alert("Order Successful!");
+      setFormData({ customerName: '', customerPhone: '', productId: '', productName: '', quantity: 1, costPrice: 0, sellingPrice: 0, discount: 0, courierCost: 100, otherExpense: 0 });
+    }
+  });
+
+  // 4. Delete Order Mutation
+  const deleteOrderMutation = useMutation({
+    mutationFn: async (id) => {
+      const res = await fetch(`/api/orders?id=${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Delete failed');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['orders']);
+      queryClient.invalidateQueries(['dashboardStats']);
+    }
+  });
 
   if (!context) return null;
   const { t } = context;
@@ -57,54 +90,36 @@ export default function OrdersPage() {
     }
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
     const product = inventory.find(p => p._id === formData.productId);
     if (product && product.stock < formData.quantity) {
-      alert("স্টকে পর্যাপ্ত মাল নেই!");
+      alert("Insufficient Stock!");
       return;
     }
 
-    setLoading(true);
     const totalSell = (formData.sellingPrice - formData.discount) * formData.quantity;
     const totalCost = formData.costPrice * formData.quantity;
     const netProfit = totalSell - totalCost - formData.courierCost - formData.otherExpense;
 
-    try {
-      const res = await fetch('/api/orders', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...formData, netProfit }),
-      });
-      if (res.ok) {
-        alert("অর্ডার সফল!");
-        setFormData({ customerName: '', customerPhone: '', productId: '', productName: '', quantity: 1, costPrice: 0, sellingPrice: 0, discount: 0, courierCost: 100, otherExpense: 0 });
-        fetchData(); // লিস্ট আপডেট করা
-      }
-    } catch (error) { alert("Error!"); } finally { setLoading(false); }
-  };
-
-  const deleteOrder = async (id) => {
-    if (!confirm("আপনি কি অর্ডারটি ডিলিট করতে চান?")) return;
-    const res = await fetch(`/api/orders?id=${id}`, { method: 'DELETE' });
-    if (res.ok) fetchData();
+    createOrderMutation.mutate({ ...formData, netProfit });
   };
 
   return (
     <div className="max-w-6xl mx-auto space-y-12 p-4 md:p-0 pb-20">
-      {/* ১. অর্ডার এন্ট্রি ফর্ম */}
+      {/* 1. Order Entry Form */}
       <div className="space-y-6">
         <h1 className="text-4xl font-black uppercase italic tracking-tighter text-white flex items-center gap-3">
             <ShoppingBag className="text-blue-500" size={36} /> {t?.orders || "Create New Order"}
         </h1>
         <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-[#11161D] p-8 rounded-[2.5rem] border border-white/5 shadow-2xl">
-            <input type="text" placeholder="কাস্টমারের নাম" required className="bg-white/5 p-4 rounded-xl border border-white/10 text-white outline-none focus:border-blue-600" value={formData.customerName} onChange={(e) => setFormData({...formData, customerName: e.target.value})} />
-            <input type="text" placeholder="ফোন নম্বর" required className="bg-white/5 p-4 rounded-xl border border-white/10 text-white outline-none focus:border-blue-600" value={formData.customerPhone} onChange={(e) => setFormData({...formData, customerPhone: e.target.value})} />
+            <input type="text" placeholder="Customer Name" required className="bg-white/5 p-4 rounded-xl border border-white/10 text-white outline-none focus:border-blue-600" value={formData.customerName} onChange={(e) => setFormData({...formData, customerName: e.target.value})} />
+            <input type="text" placeholder="Phone Number" required className="bg-white/5 p-4 rounded-xl border border-white/10 text-white outline-none focus:border-blue-600" value={formData.customerPhone} onChange={(e) => setFormData({...formData, customerPhone: e.target.value})} />
             
             <div className="md:col-span-2 space-y-2">
                 <label className="text-[10px] text-slate-500 font-bold ml-2 uppercase tracking-widest">Select Product</label>
                 <select required className="w-full bg-[#0d1117] p-4 rounded-xl border border-white/10 text-white outline-none focus:border-blue-600 appearance-none" value={formData.productId} onChange={handleProductChange}>
-                    <option value="">পণ্য সিলেক্ট করুন</option>
+                    <option value="">Select a Product</option>
                     {inventory.map((item) => (<option key={item._id} value={item._id}>{item.name} (Stock: {item.stock})</option>))}
                 </select>
             </div>
@@ -115,7 +130,7 @@ export default function OrdersPage() {
                     <input type="number" required className="w-full bg-white/5 p-4 rounded-xl border border-white/10 text-white" value={formData.quantity} onChange={(e) => setFormData({...formData, quantity: Number(e.target.value)})} />
                 </div>
                 <div className="space-y-2">
-                    <label className="text-[10px] text-slate-500 font-bold ml-2 uppercase">Discount (Unit)</label>
+                    <label className="text-[10px] text-slate-500 font-bold ml-2 uppercase">Discount</label>
                     <input type="number" className="w-full bg-white/5 p-4 rounded-xl border border-white/10 text-white" value={formData.discount} onChange={(e) => setFormData({...formData, discount: Number(e.target.value)})} />
                 </div>
                 <div className="space-y-2">
@@ -124,11 +139,13 @@ export default function OrdersPage() {
                 </div>
             </div>
 
-            <button type="submit" disabled={loading} className="md:col-span-2 bg-blue-600 hover:bg-blue-700 p-6 rounded-2xl font-black uppercase tracking-widest transition-all shadow-lg shadow-blue-900/20">{loading ? "SAVING..." : "CONFIRM ORDER"}</button>
+            <button type="submit" disabled={createOrderMutation.isPending} className="md:col-span-2 bg-blue-600 hover:bg-blue-700 p-6 rounded-2xl font-black uppercase tracking-widest transition-all shadow-lg shadow-blue-900/20">
+              {createOrderMutation.isPending ? "SAVING..." : "CONFIRM ORDER"}
+            </button>
         </form>
       </div>
 
-      {/* ২. অর্ডার হিস্ট্রি টেবিল */}
+      {/* 2. Orders History Table */}
       <div className="space-y-6">
         <h2 className="text-2xl font-black uppercase italic tracking-tighter text-slate-400 flex items-center gap-3">
             <Clock size={24} /> Recent Orders
@@ -146,7 +163,9 @@ export default function OrdersPage() {
                         </tr>
                     </thead>
                     <tbody className="text-white">
-                        {orders.length === 0 ? (
+                        {ordersLoading ? (
+                           <tr><td colSpan="5" className="p-10 text-center text-slate-500 animate-pulse">Synchronizing Data...</td></tr>
+                        ) : orders.length === 0 ? (
                             <tr><td colSpan="5" className="p-10 text-center text-slate-500 italic">No orders found.</td></tr>
                         ) : orders.map((order) => (
                             <tr key={order._id} className="border-b border-white/5 hover:bg-white/[0.01] transition-colors">
@@ -165,7 +184,7 @@ export default function OrdersPage() {
                                     </span>
                                 </td>
                                 <td className="p-6 text-right">
-                                    <button onClick={() => deleteOrder(order._id)} className="text-slate-600 hover:text-red-500 transition-colors">
+                                    <button onClick={() => { if(confirm("Delete order?")) deleteOrderMutation.mutate(order._id) }} className="text-slate-600 hover:text-red-500 transition-colors">
                                         <Trash2 size={18} />
                                     </button>
                                 </td>
