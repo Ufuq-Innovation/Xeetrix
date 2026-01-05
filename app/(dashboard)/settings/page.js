@@ -4,8 +4,22 @@ import React, { useState } from 'react';
 import { useApp } from "@/context/AppContext";
 import { Settings, Globe, Building2, User, Save, ShieldCheck } from 'lucide-react';
 
+// Added all 10 languages to sync with our i18n setup
+const languages = [
+  { code: 'en', name: 'English', flag: '🇺🇸' },
+  { code: 'bn', name: 'বাংলা', flag: '🇧🇩' },
+  { code: 'ar', name: 'العربية', flag: '🇸🇦' },
+  { code: 'ur', name: 'اردو', flag: '🇵🇰' },
+  { code: 'ps', name: 'پښتو', flag: '🇦🇫' },
+  { code: 'hi', name: 'हिन्दी', flag: '🇮🇳' },
+  { code: 'ru', name: 'Русский', flag: '🇷🇺' },
+  { code: 'zh', name: '中文', flag: '🇨🇳' },
+  { code: 'es', name: 'Español', flag: '🇪🇸' },
+  { code: 'ja', name: '日本語', flag: '🇯🇵' },
+];
+
 export default function SettingsPage() {
-  const { t, lang, toggleLang } = useApp(); // AppContext-এর সাথে সিঙ্ক করা হয়েছে
+  const { t, lang, toggleLang } = useApp();
   const [loading, setLoading] = useState(false);
   
   const [profile, setProfile] = useState({
@@ -18,9 +32,21 @@ export default function SettingsPage() {
   const handleSave = async () => {
     setLoading(true);
     try {
-      // এখানে ভবিষ্যতে এপিআই কল যুক্ত করা যাবে
       await new Promise(resolve => setTimeout(resolve, 1000));
-      alert(lang === 'bn' ? "সেটিংস সফলভাবে সংরক্ষিত হয়েছে!" : "Settings saved successfully!");
+      // Multi-language notification support
+      const successMsg = {
+        en: "Settings saved successfully!",
+        bn: "সেটিংস সফলভাবে সংরক্ষিত হয়েছে!",
+        ar: "تم حفظ الإعدادات بنجاح!",
+        ur: "ترتیبات کامیابی سے محفوظ ہوگئیں!",
+        ps: "تنظیمات په بریالیتوب سره خوندي شول!",
+        ja: "設定が正常に保存されました！",
+        ru: "Настройки успешно сохранены!",
+        hi: "सेटिंग्स सफलतापूर्वक सहेजी गईं!",
+        zh: "设置保存成功！",
+        es: "¡Configuración guardada con éxito!"
+      };
+      alert(successMsg[lang] || successMsg['en']);
     } catch (error) {
       console.error("Failed to sync settings:", error);
     } finally {
@@ -93,25 +119,27 @@ export default function SettingsPage() {
           </section>
         </div>
 
-        {/* Sidebar Settings (Localization & Save) */}
+        {/* Localization & Global Reach Section */}
         <div className="space-y-8">
           <div className="bg-[#11161D] p-8 rounded-[2.5rem] border border-white/5 space-y-6 shadow-xl">
             <h3 className="text-xs font-black uppercase tracking-[0.2em] text-blue-500 flex items-center gap-2">
-              <Globe size={16} /> {t?.localization || "Localization"}
+              <Globe size={16} /> {t?.localization || "Global Reach"}
             </h3>
-            <div className="flex flex-col gap-3">
-              <button 
-                onClick={() => toggleLang('bn')}
-                className={`w-full p-4 rounded-xl font-black uppercase text-xs tracking-widest border transition-all duration-300 ${lang === 'bn' ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-900/20' : 'bg-white/5 border-white/10 text-slate-500 hover:border-white/20'}`}
-              >
-                বাংলা (Bengali)
-              </button>
-              <button 
-                onClick={() => toggleLang('en')}
-                className={`w-full p-4 rounded-xl font-black uppercase text-xs tracking-widest border transition-all duration-300 ${lang === 'en' ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-900/20' : 'bg-white/5 border-white/10 text-slate-500 hover:border-white/20'}`}
-              >
-                English (Global)
-              </button>
+            <div className="grid grid-cols-1 gap-3 max-h-[320px] overflow-y-auto pr-2 custom-scrollbar">
+              {languages.map((item) => (
+                <button 
+                  key={item.code}
+                  onClick={() => toggleLang(item.code)}
+                  className={`w-full p-4 rounded-xl font-black uppercase text-[10px] tracking-widest border transition-all duration-300 flex items-center justify-between ${
+                    lang === item.code 
+                    ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-900/20' 
+                    : 'bg-white/5 border-white/10 text-slate-500 hover:border-white/20'
+                  }`}
+                >
+                  <span>{item.name}</span>
+                  <span className="text-lg grayscale-0">{item.flag}</span>
+                </button>
+              ))}
             </div>
             <div className="flex items-center gap-2 justify-center text-[9px] text-slate-500 font-black uppercase tracking-widest opacity-60">
               <ShieldCheck size={12} /> Auto-Sync Enabled
@@ -124,7 +152,7 @@ export default function SettingsPage() {
             className="w-full bg-blue-600 p-6 rounded-[2rem] font-black uppercase tracking-[0.3em] text-sm flex items-center justify-center gap-3 hover:bg-blue-700 active:scale-[0.98] transition-all shadow-xl shadow-blue-900/20 text-white"
           >
             <Save size={20} />
-            {loading ? "SYNCING..." : "SAVE SETTINGS"}
+            {loading ? "SYNCING..." : t?.save || "SAVE SETTINGS"}
           </button>
         </div>
 
