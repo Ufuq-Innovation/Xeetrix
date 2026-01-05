@@ -89,3 +89,64 @@ export default function CourierPage() {
       <div className="bg-[#11161D] rounded-[2.5rem] border border-white/5 overflow-hidden shadow-2xl">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
+            <thead className="text-[10px] text-slate-500 font-bold uppercase border-b border-white/5 bg-white/2">
+              <tr>
+                <th className="p-6">{t('order_details')}</th>
+                <th className="p-6">{t('customer_info')}</th>
+                <th className="p-6">{t('current_status')}</th>
+                <th className="p-6 text-right">{t('action')}</th>
+              </tr>
+            </thead>
+            <tbody className="text-white">
+              {isLoading ? (
+                <tr>
+                  <td colSpan="4" className="p-20 text-center text-slate-500 font-bold uppercase tracking-widest animate-pulse">
+                    {t('syncing_pipeline')}
+                  </td>
+                </tr>
+              ) : filteredOrders.length === 0 ? (
+                <tr>
+                  <td colSpan="4" className="p-20 text-center text-slate-500 uppercase text-xs font-bold italic">
+                    {t('no_parcels')}
+                  </td>
+                </tr>
+              ) : filteredOrders.map((order) => (
+                <tr key={order._id} className="border-b border-white/5 hover:bg-white/1 transition-colors">
+                  <td className="p-6">
+                    <div className="font-bold text-white uppercase tracking-tight">{order.productName}</div>
+                    <div className="text-[10px] text-slate-500 font-medium italic mt-1">
+                      {t('qty')}: {order.quantity} | {t('ref')}: {order._id.slice(-6).toUpperCase()}
+                    </div>
+                  </td>
+                  <td className="p-6">
+                    <div className="text-sm font-bold text-slate-300">{order.customerName}</div>
+                    <div className="text-[10px] text-slate-500">{order.customerPhone}</div>
+                  </td>
+                  <td className="p-6">
+                    <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase border ${getStatusStyle(order.status)}`}>
+                      {/* Dynamic translation based on status value */}
+                      {t(order.status.toLowerCase())}
+                    </span>
+                  </td>
+                  <td className="p-6 text-right">
+                    <select 
+                      disabled={updateStatusMutation.isPending}
+                      className="bg-[#090E14] text-[10px] font-black uppercase p-2 px-3 rounded-xl border border-white/10 outline-none focus:border-blue-500 transition-all cursor-pointer text-slate-300 disabled:opacity-50"
+                      value={order.status || 'Pending'}
+                      onChange={(e) => updateStatusMutation.mutate({ id: order._id, newStatus: e.target.value })}
+                    >
+                      <option value="Pending">🕒 {t('pending')}</option>
+                      <option value="Shipped">📦 {t('shipped')}</option>
+                      <option value="Delivered">✅ {t('delivered')}</option>
+                      <option value="Returned">🔄 {t('returned')}</option>
+                    </select>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
