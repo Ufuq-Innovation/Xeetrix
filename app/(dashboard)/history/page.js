@@ -1,93 +1,154 @@
 "use client";
-import React, { useEffect, useState } from 'react';
 
+import React, { useEffect, useState } from 'react';
+import { useApp } from "@/context/AppContext";
+import { Trash2, History, CheckSquare, Square } from 'lucide-react';
+
+/**
+ * Order History Page
+ * Provides a detailed audit log of all transactions with bulk management capabilities.
+ */
 export default function HistoryPage() {
+  const { t } = useApp();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedOrders, setSelectedOrders] = useState([]); // মাল্টিপল ডিলিট এর জন্য
+  const [selectedOrders, setSelectedOrders] = useState([]);
 
-  const fetchOrders = () => {
-    fetch('/api/orders')
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) setOrders(data.orders);
-        setLoading(false);
-      });
-  };
-
-  useEffect(() => { fetchOrders(); }, []);
-
-  const handleDelete = async (id) => {
-    if (!confirm("আপনি কি নিশ্চিত ডিলিট করতে চান?")) return;
-    const res = await fetch(`/api/orders?id=${id}`, { method: 'DELETE' });
-    if (res.ok) fetchOrders();
-  };
-
-  const handleSelect = (id) => {
-    setSelectedOrders(prev => prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]);
-  };
-
-  const deleteSelected = async () => {
-    if (!confirm(`আপনি কি ${selectedOrders.length}টি অর্ডার ডিলিট করতে চান?`)) return;
-    // লুপ চালিয়ে ডিলিট (অথবা ব্যাকএন্ডে বাল্ক ডিলিট এপিআই বানানো যায়)
-    for (let id of selectedOrders) {
-      await fetch(`/api/orders?id=${id}`, { method: 'DELETE' });
+  /** Fetch synchronized order records */
+  const fetchOrders = async () => {
+    try {
+      const res = await fetch('/api/orders');
+      const data = await res.json();
+      if (data.success) setOrders(data.orders);
+    } catch (error) {
+      console.error("Audit log synchronization failed:", error);
+    } finally {
+      setLoading(false);
     }
-    setSelectedOrders([]);
-    fetchOrders();
   };
 
-  if (loading) return <div className="text-white p-10">লোড হচ্ছে...</div>;
+  useEffect(() => { 
+    fetchOrders(); 
+  }, []);
+
+  /** Handle single record deletion */
+  const handleDelete = async (id) => {
+    if (!window.confirm("Are you sure you want to permanently delete this record?")) return;
+    try {
+      const res = await fetch(`/api/orders?id=${id}`, { method: 'DELETE' });
+      if (res.ok) fetchOrders();
+    } catch (error) {
+      console.error("Deletion error:", error);
+    }
+  };
+
+  /** Toggle selection for bulk actions */
+  const handleSelect = (id) => {
+    setSelectedOrders(prev => 
+      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+    );
+  };
+
+  /** Execute bulk deletion process */
+  const deleteSelected = async () => {
+    if (!window.confirm(`Delete ${selectedOrders.length} selected records permanently?`)) return;
+    
+    setLoading(true);
+    try {
+      // Executing sequential deletion (Optimization: Implement bulk DELETE endpoint in future)
+      await Promise.all(
+        selectedOrders.map(id => fetch(`/api/orders?id=${id}`, { method: 'DELETE' }))
+      );
+      setSelectedOrders([]);
+      await fetchOrders();
+    } catch (error) {
+      console.error("Bulk action failed:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <div className="space-y-8">
-      <div className="flex justify-between items-center">
-        <h1 className="text-4xl font-black uppercase italic tracking-tighter text-white">Order History</h1>
+    <div className="space-y-10 p-4 md:p-0">
+      <header className="flex justify-between items-center">
+        <h1 className="text-4xl font-black uppercase italic tracking-tighter text-white flex items-center gap-3">
+          <History size={40} className="text-blue-500" /> 
+          Order History
+        </h1>
+        
         {selectedOrders.length > 0 && (
-          <button onClick={deleteSelected} className="bg-red-600 text-white px-6 py-2 rounded-full font-bold text-xs uppercase">
-            Delete Selected ({selectedOrders.length})
+          <button 
+            onClick={deleteSelected} 
+            className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-lg shadow-red-900/20 flex items-center gap-2"
+          >
+            <Trash2 size={14} /> Delete Selected ({selectedOrders.length})
           </button>
         )}
-      </div>
+      </header>
 
-      <div className="overflow-x-auto bg-[#11161D] rounded-[2.5rem] border border-white/5">
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="border-b border-white/5 text-[10px] text-slate-500 font-bold uppercase tracking-widest">
-              <th className="p-6 w-10"><input type="checkbox" onChange={(e) => e.target.checked ? setSelectedOrders(orders.map(o => o._id)) : setSelectedOrders([])} /></th>
-              <th className="p-6">Customer</th>
-              <th className="p-6">Product</th>
-              <th className="p-6">Qty</th>
-              <th className="p-6">Selling Price</th>
-              <th className="p-6">Net Profit</th>
-              <th className="p-6">Action</th>
-            </tr>
-          </thead>
-          <tbody className="text-white">
-            {orders.map((order) => (
-              <tr key={order._id} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors">
-                <td className="p-6">
-                  <input type="checkbox" checked={selectedOrders.includes(order._id)} onChange={() => handleSelect(order._id)} />
-                </td>
-                <td className="p-6 font-medium">
-                  {order.customerName} <br />
-                  <span className="text-xs text-slate-500">{order.customerPhone}</span>
-                </td>
-                <td className="p-6">{order.productName}</td>
-                <td className="p-6">{order.quantity}</td>
-                <td className="p-6">৳ {order.sellingPrice * order.quantity}</td>
-                <td className="p-6 font-bold text-green-500">৳ {order.netProfit}</td>
-                <td className="p-6">
-                  <button onClick={() => handleDelete(order._id)} className="text-red-500 hover:text-red-400">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
+      <div className="bg-[#11161D] rounded-[2.5rem] border border-white/5 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead className="text-[10px] text-slate-500 font-black uppercase border-b border-white/5 bg-white/[0.02]">
+              <tr>
+                <th className="p-6 w-10">
+                  <button 
+                    onClick={() => setSelectedOrders(selectedOrders.length === orders.length ? [] : orders.map(o => o._id))}
+                    className="text-slate-500 hover:text-white transition-colors"
+                  >
+                    {selectedOrders.length === orders.length ? <CheckSquare size={18} /> : <Square size={18} />}
                   </button>
-                </td>
+                </th>
+                <th className="p-6 tracking-widest">Customer Profile</th>
+                <th className="p-6 tracking-widest">Product Details</th>
+                <th className="p-6 tracking-widest text-right">Revenue</th>
+                <th className="p-6 tracking-widest text-right">Net Profit</th>
+                <th className="p-6 tracking-widest text-right">Actions</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="text-white">
+              {loading && orders.length === 0 ? (
+                <tr>
+                  <td colSpan="6" className="p-20 text-center text-slate-500 font-bold uppercase tracking-widest animate-pulse">
+                    Synchronizing History Data...
+                  </td>
+                </tr>
+              ) : orders.map((order) => (
+                <tr key={order._id} className={`border-b border-white/5 hover:bg-white/[0.02] transition-colors ${selectedOrders.includes(order._id) ? 'bg-blue-600/5' : ''}`}>
+                  <td className="p-6">
+                    <button onClick={() => handleSelect(order._id)} className="text-slate-500">
+                      {selectedOrders.includes(order._id) ? <CheckSquare size={18} className="text-blue-500" /> : <Square size={18} />}
+                    </button>
+                  </td>
+                  <td className="p-6">
+                    <div className="font-bold text-slate-200">{order.customerName}</div>
+                    <div className="text-[10px] text-slate-500 font-medium">{order.customerPhone}</div>
+                  </td>
+                  <td className="p-6">
+                    <div className="text-sm font-medium">{order.productName}</div>
+                    <div className="text-[10px] text-slate-500 uppercase">Unit: {order.quantity}</div>
+                  </td>
+                  <td className="p-6 text-right font-mono text-sm text-slate-400">
+                    ৳ {(order.sellingPrice * order.quantity).toLocaleString()}
+                  </td>
+                  <td className="p-6 text-right">
+                    <span className="font-black text-green-500 font-mono">
+                      ৳ {order.netProfit?.toLocaleString()}
+                    </span>
+                  </td>
+                  <td className="p-6 text-right">
+                    <button 
+                      onClick={() => handleDelete(order._id)} 
+                      className="text-slate-600 hover:text-red-500 transition-colors p-2"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
