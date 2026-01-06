@@ -1,35 +1,31 @@
 "use client";
 
 import { AppProvider, useApp } from "@/context/AppContext";
+import { Toaster } from "sonner";
 import "./globals.css";
-import "@/lib/i18n"; 
+import "@/lib/i18n";
 
-/**
- * RootLayoutContent - Sub-wrapper to access Context values for HTML attributes.
- * It dynamically updates 'lang' and 'dir' based on the global state.
- */
-function RootLayoutContent({ children }) {
-  const { state } = useApp();
-
+export default function RootLayout({ children }) {
   return (
-    <html lang={state?.language || "en"} dir={state?.isRTL ? "rtl" : "ltr"}>
-      <body className="antialiased" style={{ margin: 0, padding: 0 }}>
-        {children}
+    <html lang="en" dir="ltr">
+      <body style={{ margin: 0, padding: 0 }}>
+        <AppProvider>
+          <ClientWrapper>
+            {children}
+          </ClientWrapper>
+          <Toaster position="top-right" richColors />
+        </AppProvider>
       </body>
     </html>
   );
 }
 
-/**
- * RootLayout - The main entry point for the application UI.
- * Wrapped in AppProvider to provide global state to all children.
- */
-export default function RootLayout({ children }) {
+// ClientWrapper ensures dynamic lang/dir from context is applied safely
+function ClientWrapper({ children }) {
+  const { state } = useApp();
   return (
-    <AppProvider>
-      <RootLayoutContent>
-        {children}
-      </RootLayoutContent>
-    </AppProvider>
+    <div lang={state?.lang || "en"} dir={state?.dir || "ltr"}>
+      {children}
+    </div>
   );
 }

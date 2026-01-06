@@ -1,142 +1,484 @@
 "use client";
 
-import React, { useState } from 'react';
-import { useTranslation } from 'react-i18next'; // Hook for real-time translation
+import React, { useState } from "react";
+import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 import { useApp } from "@/context/AppContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Edit2, Package, TrendingUp, DollarSign, Hash, Tag, User, FileText } from "lucide-react";
 
 export default function InventoryPage() {
   const { lang } = useApp();
-  const { t } = useTranslation('common'); // Professional i18n hook
+  const { t } = useTranslation("common");
   const queryClient = useQueryClient();
+
   const [editingId, setEditingId] = useState(null);
-  const [formData, setFormData] = useState({ 
-    name: '', stock: '', sku: '', costPrice: '', sellingPrice: '',
-    description: '', category: '', source: '' 
+  const [formData, setFormData] = useState({
+    name: "",
+    stock: "",
+    sku: "",
+    costPrice: "",
+    sellingPrice: "",
+    description: "",
+    category: "",
+    source: "",
   });
 
-  /**
-   * 1. Fetch Inventory Data using TanStack Query.
-   * Linked to 'lang' to ensure reactivity across different locales.
-   */
-  const { data: products = [], isLoading: fetching } = useQuery({
-    queryKey: ['inventory', lang],
+  /* ===================== FETCH ===================== */
+  const { data: products = [], isLoading } = useQuery({
+    queryKey: ["inventory", lang],
     queryFn: async () => {
-      const res = await fetch('/api/inventory');
+      const res = await fetch("/api/inventory");
       const data = await res.json();
       return data.success ? data.products : [];
-    }
+    },
   });
 
-  /**
-   * 2. Mutation for Adding or Updating Product.
-   * Invalidates relevant queries on success to maintain data integrity.
-   */
+  /* ===================== STATS ===================== */
+  const totalStock = products.reduce((sum, item) => sum + (Number(item.stock) || 0), 0);
+  const totalValue = products.reduce((sum, item) => {
+    const cost = Number(item.costPrice) || 0;
+    const stock = Number(item.stock) || 0;
+    return sum + (cost * stock);
+  }, 0);
+  const outOfStock = products.filter(item => (Number(item.stock) || 0) <= 0).length;
+  const totalProducts = products.length;
+
+  /* ===================== ADD / UPDATE ===================== */
   const productMutation = useMutation({
-    mutationFn: async (bodyData) => {
-      const method = editingId ? 'PUT' : 'POST';
-      const res = await fetch('/api/inventory', {
-        method: method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(bodyData),
+    mutationFn: async (body) => {
+      const method = editingId ? "PUT" : "POST";
+      const res = await fetch("/api/inventory", {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
       });
-      if (!res.ok) throw new Error('Failed to save product');
+      if (!res.ok) throw new Error("Save failed");
       return res.json();
     },
+
+    onMutate: () => {
+      toast.loading(
+        editingId ? t("updating_product") : t("adding_product"),
+        { id: "product" }
+      );
+    },
+
     onSuccess: () => {
-      queryClient.invalidateQueries(['inventory']);
-      queryClient.invalidateQueries(['dashboardStats']);
-      
-      // Reset form and editing state
-      setFormData({ name: '', stock: '', sku: '', costPrice: '', sellingPrice: '', description: '', category: '', source: '' });
+      queryClient.invalidateQueries({ queryKey: ["inventory"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
+
+      setFormData({
+        name: "",
+        stock: "",
+        sku: "",
+        costPrice: "",
+        sellingPrice: "",
+        description: "",
+        category: "",
+        source: "",
+      });
       setEditingId(null);
-      alert(editingId ? t('product_updated_alert') : t('product_added_alert'));
-    }
+
+      toast.success(
+        editingId ? t("product_updated") : t("product_added"),
+        { id: "product" }
+      );
+    },
+
+    onError: () => {
+      toast.error(t("product_save_failed"), { id: "product" });
+    },
   });
 
-  /**
-   * Handle Form Submission for both Create and Update operations.
-   */
+  /* ===================== SUBMIT ===================== */
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!formData.name || !formData.stock) return;
-    
-    const bodyData = editingId ? { ...formData, id: editingId } : formData;
-    productMutation.mutate(bodyData);
+    if (!formData.name || !formData.stock) {
+      toast.error(t("fill_required_fields"));
+      return;
+    }
+
+    productMutation.mutate(
+      editingId ? { ...formData, id: editingId } : formData
+    );
   };
 
-  /**
-   * Pre-fill the form with existing product data for editing.
-   */
-  const startEdit = (product) => {
-    setEditingId(product._id);
+  /* ===================== EDIT ===================== */
+  const startEdit = (item) => {
+    setEditingId(item._id);
     setFormData({
-      name: product.name, sku: product.sku || '', stock: product.stock,
-      costPrice: product.costPrice || '', sellingPrice: product.sellingPrice || '',
-      description: product.description || '', category: product.category || '', source: product.source || ''
+      name: item.name || "",
+      stock: item.stock || "",
+      sku: item.sku || "",
+      costPrice: item.costPrice || "",
+      sellingPrice: item.sellingPrice || "",
+      description: item.description || "",
+      category: item.category || "",
+      source: item.source || "",
     });
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  /* ===================== CANCEL EDIT ===================== */
+  const cancelEdit = () => {
+    setEditingId(null);
+    setFormData({
+      name: "",
+      stock: "",
+      sku: "",
+      costPrice: "",
+      sellingPrice: "",
+      description: "",
+      category: "",
+      source: "",
+    });
+  };
+
+  /* ===================== UI ===================== */
   return (
-    <div className="space-y-10 p-4 md:p-0">
-      <header>
-        <h1 className="text-4xl font-black uppercase italic tracking-tighter text-white">
-          {t('inventory')}
-        </h1>
-      </header>
+    <div className="space-y-8 p-4 md:p-6 max-w-7xl mx-auto">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl md:text-4xl font-black uppercase italic text-white">
+            {t("inventory")}
+          </h1>
+          <p className="text-slate-400 mt-2">{t("manage_your_stock")}</p>
+        </div>
+        
+        <div className="flex items-center gap-2">
+          {editingId && (
+            <button
+              onClick={cancelEdit}
+              className="px-4 py-2 text-sm border border-slate-700 text-slate-400 hover:text-white rounded-lg transition-colors"
+            >
+              {t("cancel")}
+            </button>
+          )}
+        </div>
+      </div>
 
-      {/* Product Entry Form - Fully Localized */}
-      <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-[#11161D] p-6 rounded-4xl border border-white/5 shadow-2xl">
-        <input type="text" placeholder={t('product_name_placeholder')} required className="bg-white/5 p-4 rounded-xl border border-white/10 text-white outline-none focus:border-blue-600" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} />
-        <input type="text" placeholder={t('category')} className="bg-white/5 p-4 rounded-xl border border-white/10 text-white outline-none focus:border-blue-600" value={formData.category} onChange={(e) => setFormData({...formData, category: e.target.value})} />
-        <input type="text" placeholder={t('source_supplier')} className="bg-white/5 p-4 rounded-xl border border-white/10 text-white outline-none focus:border-blue-600" value={formData.source} onChange={(e) => setFormData({...formData, source: e.target.value})} />
-        <input type="number" placeholder={t('stock_quantity')} required className="bg-white/5 p-4 rounded-xl border border-white/10 text-white outline-none focus:border-blue-600" value={formData.stock} onChange={(e) => setFormData({...formData, stock: e.target.value})} />
-        <input type="number" placeholder={t('cost_price')} className="bg-white/5 p-4 rounded-xl border border-white/10 text-white outline-none focus:border-blue-600" value={formData.costPrice} onChange={(e) => setFormData({...formData, costPrice: e.target.value})} />
-        <input type="number" placeholder={t('selling_price')} className="bg-white/5 p-4 rounded-xl border border-white/10 text-white outline-none focus:border-blue-600" value={formData.sellingPrice} onChange={(e) => setFormData({...formData, sellingPrice: e.target.value})} />
-        <textarea placeholder={t('description')} className="md:col-span-2 bg-white/5 p-4 rounded-xl border border-white/10 text-white outline-none focus:border-blue-600 h-14.5" value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} />
-        <button type="submit" disabled={productMutation.isPending} className="bg-blue-600 hover:bg-blue-700 text-white font-black uppercase tracking-widest rounded-xl transition-all h-14.5 shadow-lg shadow-blue-900/20">
-          {productMutation.isPending ? t('processing') : editingId ? t('update_product') : t('add_to_stock')}
-        </button>
-      </form>
+      {/* Stats Grid */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-[#11161D] p-5 rounded-2xl border border-white/5">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-slate-400">{t("total_stock")}</p>
+              <p className="text-2xl font-bold text-white mt-1">{totalStock}</p>
+            </div>
+            <div className="p-3 bg-blue-500/10 rounded-xl">
+              <Package className="text-blue-500" size={20} />
+            </div>
+          </div>
+        </div>
 
-      {/* Inventory Management Table */}
-      <div className="bg-[#11161D] rounded-4xl border border-white/5 overflow-hidden shadow-xl">
+        <div className="bg-[#11161D] p-5 rounded-2xl border border-white/5">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-slate-400">{t("inventory_value")}</p>
+              <p className="text-2xl font-bold text-white mt-1">
+                ৳ {totalValue.toLocaleString()}
+              </p>
+            </div>
+            <div className="p-3 bg-green-500/10 rounded-xl">
+              <DollarSign className="text-green-500" size={20} />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-[#11161D] p-5 rounded-2xl border border-white/5">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-slate-400">{t("total_products")}</p>
+              <p className="text-2xl font-bold text-white mt-1">{totalProducts}</p>
+            </div>
+            <div className="p-3 bg-purple-500/10 rounded-xl">
+              <Hash className="text-purple-500" size={20} />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-[#11161D] p-5 rounded-2xl border border-white/5">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-slate-400">{t("out_of_stock")}</p>
+              <p className={`text-2xl font-bold mt-1 ${outOfStock > 0 ? 'text-red-500' : 'text-green-500'}`}>
+                {outOfStock}
+              </p>
+            </div>
+            <div className="p-3 bg-red-500/10 rounded-xl">
+              <TrendingUp className="text-red-500" size={20} />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Add/Edit Product Form */}
+      <div className="bg-[#11161D] p-6 rounded-2xl border border-white/5">
+        <div className="flex items-center gap-2 mb-6">
+          <div className={`p-2 rounded-lg ${editingId ? 'bg-yellow-500/10' : 'bg-blue-500/10'}`}>
+            <Edit2 className={editingId ? 'text-yellow-500' : 'text-blue-500'} size={20} />
+          </div>
+          <h3 className="text-xl font-bold text-white">
+            {editingId ? t("edit_product") : t("add_new_product")}
+          </h3>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm text-slate-400 mb-2">
+                {t("product_name")} *
+              </label>
+              <input
+                required
+                placeholder={t("product_name_placeholder")}
+                className="w-full p-3.5 bg-[#1a2230] border border-white/10 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
+                value={formData.name}
+                onChange={(e) =>
+                  setFormData({ ...formData, name: e.target.value })
+                }
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm text-slate-400 mb-2">
+                {t("category")}
+              </label>
+              <div className="relative">
+                <Tag className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500" size={18} />
+                <input
+                  placeholder={t("category_placeholder")}
+                  className="w-full p-3.5 pl-10 bg-[#1a2230] border border-white/10 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
+                  value={formData.category}
+                  onChange={(e) =>
+                    setFormData({ ...formData, category: e.target.value })
+                  }
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm text-slate-400 mb-2">
+                {t("source_supplier")}
+              </label>
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500" size={18} />
+                <input
+                  placeholder={t("source_placeholder")}
+                  className="w-full p-3.5 pl-10 bg-[#1a2230] border border-white/10 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
+                  value={formData.source}
+                  onChange={(e) =>
+                    setFormData({ ...formData, source: e.target.value })
+                  }
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm text-slate-400 mb-2">
+                {t("stock_quantity")} *
+              </label>
+              <input
+                required
+                type="number"
+                min="0"
+                placeholder="0"
+                className="w-full p-3.5 bg-[#1a2230] border border-white/10 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
+                value={formData.stock}
+                onChange={(e) =>
+                  setFormData({ ...formData, stock: e.target.value })
+                }
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm text-slate-400 mb-2">
+                {t("cost_price")}
+              </label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500">৳</span>
+                <input
+                  type="number"
+                  step="0.01"
+                  placeholder="0.00"
+                  className="w-full p-3.5 pl-10 bg-[#1a2230] border border-white/10 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
+                  value={formData.costPrice}
+                  onChange={(e) =>
+                    setFormData({ ...formData, costPrice: e.target.value })
+                  }
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm text-slate-400 mb-2">
+                {t("selling_price")}
+              </label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500">৳</span>
+                <input
+                  type="number"
+                  step="0.01"
+                  placeholder="0.00"
+                  className="w-full p-3.5 pl-10 bg-[#1a2230] border border-white/10 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
+                  value={formData.sellingPrice}
+                  onChange={(e) =>
+                    setFormData({ ...formData, sellingPrice: e.target.value })
+                  }
+                />
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm text-slate-400 mb-2">
+              {t("description")}
+            </label>
+            <div className="relative">
+              <FileText className="absolute left-3 top-3 text-slate-500" size={18} />
+              <textarea
+                placeholder={t("description_placeholder")}
+                className="w-full p-3.5 pl-10 bg-[#1a2230] border border-white/10 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all min-h-[100px] resize-none"
+                value={formData.description}
+                onChange={(e) =>
+                  setFormData({ ...formData, description: e.target.value })
+                }
+              />
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            disabled={productMutation.isPending}
+            className="w-full md:w-auto px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 rounded-xl font-bold uppercase text-white transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-blue-500/20"
+          >
+            {productMutation.isPending
+              ? t("processing")
+              : editingId
+              ? t("update_product")
+              : t("add_to_stock")}
+          </button>
+        </form>
+      </div>
+
+      {/* Products Table */}
+      <div className="bg-[#11161D] rounded-2xl border border-white/5 overflow-hidden">
+        <div className="p-6 border-b border-white/5">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold flex items-center gap-2 text-white">
+              <Package className="text-blue-500" size={20} />
+              {t("all_products")}
+            </h3>
+            <span className="text-sm text-slate-500">
+              {products.length} {t("products")}
+            </span>
+          </div>
+        </div>
+
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead className="text-[10px] text-slate-500 uppercase font-black border-b border-white/5 bg-white/2">
-              <tr>
-                <th className="p-6">{t('product')}</th>
-                <th className="p-6">{t('category_source')}</th>
-                <th className="p-6">{t('stock')}</th>
-                <th className="p-6 text-right">{t('action')}</th>
+          <table className="w-full min-w-[800px]">
+            <thead className="bg-white/5">
+              <tr className="text-xs uppercase text-slate-500">
+                <th className="p-4 text-left font-medium">{t("product")}</th>
+                <th className="p-4 text-left font-medium">{t("category")}</th>
+                <th className="p-4 text-left font-medium">{t("source")}</th>
+                <th className="p-4 text-left font-medium">{t("stock")}</th>
+                <th className="p-4 text-left font-medium">{t("cost_price")}</th>
+                <th className="p-4 text-left font-medium">{t("selling_price")}</th>
+                <th className="p-4 text-right font-medium">{t("action")}</th>
               </tr>
             </thead>
-            <tbody className="text-white">
-              {fetching ? (
-                <tr><td colSpan="4" className="p-10 text-center text-slate-500 animate-pulse uppercase text-xs tracking-widest">{t('syncing_inventory')}</td></tr>
-              ) : products.length === 0 ? (
-                <tr><td colSpan="4" className="p-10 text-center text-slate-500 italic uppercase text-xs font-bold">{t('no_stock_available')}</td></tr>
-              ) : products.map((item) => (
-                <tr key={item._id} className="border-b border-white/5 hover:bg-white/2 transition-colors">
-                  <td className="p-6 font-bold">
-                    <div className="text-white">{item.name}</div>
-                    <div className="text-[10px] font-normal text-slate-500 uppercase tracking-tighter">
-                      {t('cp')}: ৳{item.costPrice} | {t('sp')}: ৳{item.sellingPrice}
+            
+            <tbody>
+              {isLoading ? (
+                <tr>
+                  <td colSpan="7" className="p-8 text-center">
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                      <p className="text-slate-500">{t("syncing_inventory")}</p>
                     </div>
                   </td>
-                  <td className="p-6">
-                    <div className="text-slate-300 text-xs font-medium">{item.category || 'N/A'}</div>
-                    <div className="text-[10px] text-slate-500 uppercase">{item.source || 'N/A'}</div>
-                  </td>
-                  <td className="p-6 text-2xl font-black text-blue-500">{item.stock}</td>
-                  <td className="p-6 text-right">
-                    <button onClick={() => startEdit(item)} className="bg-white/5 hover:bg-white/10 px-4 py-2 rounded-lg text-blue-500 font-bold uppercase text-[10px] transition-all border border-white/5">
-                      {t('edit')}
-                    </button>
+                </tr>
+              ) : products.length === 0 ? (
+                <tr>
+                  <td colSpan="7" className="p-8 text-center">
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="p-4 bg-white/5 rounded-full">
+                        <Package className="text-slate-600" size={24} />
+                      </div>
+                      <p className="text-slate-500">{t("no_stock_available")}</p>
+                    </div>
                   </td>
                 </tr>
-              ))}
+              ) : (
+                products.map((item) => (
+                  <tr 
+                    key={item._id} 
+                    className="border-b border-white/5 hover:bg-white/2 transition-colors"
+                  >
+                    <td className="p-4">
+                      <div className="font-bold text-white">{item.name}</div>
+                      {item.description && (
+                        <div className="text-xs text-slate-500 mt-1 truncate max-w-xs">
+                          {item.description}
+                        </div>
+                      )}
+                    </td>
+                    <td className="p-4">
+                      {item.category ? (
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-purple-500/10 text-purple-400">
+                          {item.category}
+                        </span>
+                      ) : (
+                        <span className="text-slate-500">N/A</span>
+                      )}
+                    </td>
+                    <td className="p-4">
+                      {item.source ? (
+                        <span className="text-slate-300">{item.source}</span>
+                      ) : (
+                        <span className="text-slate-500">N/A</span>
+                      )}
+                    </td>
+                    <td className="p-4">
+                      <div className={`font-bold text-lg ${
+                        Number(item.stock) <= 0 
+                          ? 'text-red-500' 
+                          : Number(item.stock) <= 10 
+                            ? 'text-yellow-500' 
+                            : 'text-green-500'
+                      }`}>
+                        {item.stock}
+                        {Number(item.stock) <= 10 && Number(item.stock) > 0 && (
+                          <span className="text-xs text-yellow-500 ml-1">({t("low_stock")})</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="p-4">
+                      <span className="text-slate-400">
+                        ৳ {Number(item.costPrice || 0).toLocaleString()}
+                      </span>
+                    </td>
+                    <td className="p-4">
+                      <span className="text-green-400 font-medium">
+                        ৳ {Number(item.sellingPrice || 0).toLocaleString()}
+                      </span>
+                    </td>
+                    <td className="p-4 text-right">
+                      <button
+                        onClick={() => startEdit(item)}
+                        className="px-4 py-2 rounded-lg bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-500 font-medium transition-colors flex items-center gap-2 ml-auto"
+                      >
+                        <Edit2 size={16} />
+                        {t("edit")}
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
