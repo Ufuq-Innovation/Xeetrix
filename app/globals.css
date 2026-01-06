@@ -1,20 +1,39 @@
 @import "tailwindcss";
 
-:root {
-  --background: #090E14;
-  --sidebar: #11161D;
-  --foreground: #F1F5F9;
-  --accent: #2563EB;
+/* 1. Configuring Dark Mode Variant for Manual Control */
+@variant dark (&:where(.dark, .dark *));
+
+/* 2. Defining Theme Variables for Day & Night Mode */
+@layer base {
+  :root {
+    /* Day Mode Colors (Light) */
+    --background: #F8FAFC;
+    --foreground: #0F172A;
+    --sidebar: #FFFFFF;
+    --card-border: #E2E8F0;
+    --accent: #2563EB;
+  }
+
+  .dark {
+    /* Night Mode Colors (Dark) */
+    --background: #090E14;
+    --foreground: #F1F5F9;
+    --sidebar: #11161D;
+    --card-border: rgba(255, 255, 255, 0.05);
+    --accent: #3B82F6;
+  }
 }
 
+/* 3. Global Styles */
 body {
   background-color: var(--background);
   color: var(--foreground);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-/* Optimized Custom Scrollbar */
+/* 4. Optimized Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -25,15 +44,19 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(148, 163, 184, 0.2);
   border-radius: 10px;
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(37, 99, 235, 0.4);
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.05);
 }
 
-/* Utility to hide scrollbar for specific elements */
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent);
+}
+
+/* Utility to hide scrollbar */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
