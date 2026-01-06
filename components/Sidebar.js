@@ -17,7 +17,7 @@ export default function Sidebar() {
   const { lang } = useApp(); // গ্লোবাল ল্যাঙ্গুয়েজ স্টেট
 
   const menuItems = [
-    { key: 'dashboard', path: '/dashboard', icon: LayoutDashboard },
+    { key: '/dashboard', path: '/dashboard', icon: LayoutDashboard },
     { key: 'create_new_order', path: '/orders', icon: PlusCircle },
     { key: 'order_history', path: '/history', icon: ShoppingCart },
     { key: 'inventory', path: '/inventory', icon: Package },
