@@ -1,7 +1,6 @@
 @import "tailwindcss";
 
-/* 1. Configuring Dark Mode Variant for Manual Control */
-@variant dark (&:where(.dark, .dark *));
+/* 1. Dark Mode is configured in tailwind.config.js */
 
 /* 2. Defining Theme Variables for Day & Night Mode */
 @layer base {
