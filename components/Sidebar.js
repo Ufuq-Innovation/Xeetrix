@@ -14,10 +14,6 @@ export default function Sidebar() {
   const [isOpen, setIsOpen] = useState(false);
   const { t } = useTranslation('common'); 
 
-  /**
-   * বাসেত ভাই, এখানে আমি কী (Key) গুলো আপনার ১২১টি শব্দের সাথে মিলিয়ে দিয়েছি।
-   * যেমন: 'create_new_order', 'order_history' ইত্যাদি।
-   */
   const menuItems = [
     { key: '/dashboard', path: '/dashboard', icon: LayoutDashboard },
     { key: 'create_new_order', path: '/orders', icon: PlusCircle },
@@ -32,8 +28,8 @@ export default function Sidebar() {
 
   return (
     <>
-      {/* Mobile Trigger Button */}
-      <div className="lg:hidden fixed top-6 left-6 z-50">
+      {/* Mobile Trigger Button - Moved to the right side */}
+      <div className="lg:hidden fixed top-6 right-6 z-50">
         <button 
           onClick={() => setIsOpen(!isOpen)}
           className="bg-blue-600 p-3 rounded-2xl shadow-xl text-white active:scale-95 transition-all"
@@ -42,12 +38,12 @@ export default function Sidebar() {
         </button>
       </div>
 
-      {/* Main Sidebar Component */}
+      {/* Main Sidebar Component - Aligned to the right for mobile */}
       <aside className={`
-        fixed lg:relative top-0 left-0 z-40
-        w-72 h-screen bg-[#11161D] border-r border-white/5 
+        fixed lg:relative top-0 right-0 lg:left-0 z-40
+        w-72 h-screen bg-[#11161D] border-l lg:border-r border-white/5 
         flex flex-col p-8 space-y-10 transition-transform duration-500 ease-in-out
-        ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        ${isOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'}
       `}>
         {/* Brand/Logo Section */}
         <div className="flex items-center space-x-3">
@@ -79,7 +75,6 @@ export default function Sidebar() {
               >
                 <Icon size={18} className={`${isActive ? 'text-white' : 'text-slate-600 group-hover:text-blue-500'} transition-colors`} />
                 <span className="text-[11px] uppercase font-black tracking-widest">
-                  {/* বাসেত ভাই, এখানে t(item.key) নিশ্চিত করছে যে অনুবাদ ফাইল থেকে ডাটা আসবে */}
                   {t(item.key)}
                 </span>
               </Link>
