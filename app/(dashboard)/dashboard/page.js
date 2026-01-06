@@ -20,6 +20,7 @@ const fetchDashboardStats = async () => {
 /**
  * Dashboard View
  * Optimized for performance, theme consistency, and accessibility.
+ * Ensures translation keys match the localized dictionary.
  */
 export default function Dashboard() {
   const { lang } = useApp();
@@ -37,12 +38,13 @@ export default function Dashboard() {
   return (
     <div className="space-y-8 md:space-y-12 p-4 md:p-0 transition-colors duration-300">
       <header>
-        {/* Title: Non-All-Caps, Responsive Size, Theme-Aware */}
+        {/* Title: Title Case, Responsive Size, Theme-Aware */}
         <h1 className="text-3xl md:text-5xl font-black italic tracking-tight text-slate-900 dark:text-white leading-tight">
           {t('overview')}
         </h1>
+        {/* Fixed: Using 'control_room' as per verified translation keys */}
         <p className="text-slate-500 dark:text-slate-400 text-sm mt-2 font-medium">
-          {t('real_time_business_summary')}
+          {t('control_room')}
         </p>
       </header>
       
