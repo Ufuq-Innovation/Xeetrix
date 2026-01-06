@@ -1,8 +1,11 @@
 @import "tailwindcss";
 
-/* 1. Dark Mode is configured in tailwind.config.js */
+/**
+ * Configure manual dark mode variant for Tailwind CSS v4.
+ * This allows the '.dark' class on the html tag to trigger dark styles.
+ */
+@custom-variant dark (&:where(.dark, .dark *));
 
-/* 2. Defining Theme Variables for Day & Night Mode */
 @layer base {
   :root {
     /* Day Mode Colors (Light) */
@@ -23,7 +26,6 @@
   }
 }
 
-/* 3. Global Styles */
 body {
   background-color: var(--background);
   color: var(--foreground);
@@ -32,7 +34,6 @@ body {
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-/* 4. Optimized Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -55,7 +56,6 @@ body {
   background: var(--accent);
 }
 
-/* Utility to hide scrollbar */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
