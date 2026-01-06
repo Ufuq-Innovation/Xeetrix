@@ -8,7 +8,7 @@ import { useApp } from "@/context/AppContext"; // AppContext কানেক্�
 import { 
   LayoutDashboard, ShoppingCart, Wallet, Package, 
   Truck, Megaphone, BarChart, Settings, Menu, X, PlusCircle 
-} from 'lucide-center';
+} from 'lucide-react';
 
 export default function Sidebar() {
   const pathname = usePathname();
