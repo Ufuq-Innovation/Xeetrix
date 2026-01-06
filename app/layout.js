@@ -1,20 +1,35 @@
-import { AppProvider } from "@/context/AppContext";
+"use client";
+
+import { AppProvider, useAppContext } from "@/context/AppContext";
 import "./globals.css";
+import "@/lib/i18n"; 
 
-export const metadata = {
-  title: "Xeetrix - Business Control Room",
-  description: "Global E-commerce SaaS Solution",
-};
+/**
+ * RootLayoutContent - Sub-wrapper to access Context values for HTML attributes.
+ * It dynamically updates 'lang' and 'dir' based on the global state.
+ */
+function RootLayoutContent({ children }) {
+  const { state } = useAppContext();
 
-export default function RootLayout({ children }) {
   return (
-    // Language and direction are now managed within the AppProvider's wrapper div
-    <html>
-      <body style={{ margin: 0, padding: 0 }}>
-        <AppProvider>
-          {children}
-        </AppProvider>
+    <html lang={state?.language || "en"} dir={state?.isRTL ? "rtl" : "ltr"}>
+      <body className="antialiased" style={{ margin: 0, padding: 0 }}>
+        {children}
       </body>
     </html>
+  );
+}
+
+/**
+ * RootLayout - The main entry point for the application UI.
+ * Wrapped in AppProvider to provide global state to all children.
+ */
+export default function RootLayout({ children }) {
+  return (
+    <AppProvider>
+      <RootLayoutContent>
+        {children}
+      </RootLayoutContent>
+    </AppProvider>
   );
 }
