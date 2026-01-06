@@ -6,17 +6,28 @@ import { useApp } from "@/context/AppContext";
 import { useQuery } from "@tanstack/react-query";
 import { TrendingUp, ShoppingBag, DollarSign } from 'lucide-react';
 
+/**
+ * Fetch business metrics from the dashboard API.
+ * @returns {Promise<Object|null>}
+ */
 const fetchDashboardStats = async () => {
   const res = await fetch('/api/dashboard');
-  if (!res.ok) throw new Error('Network response was not ok');
+  if (!res.ok) throw new Error('Failed to synchronize dashboard data');
   const data = await res.json();
   return data.success ? data.stats : null;
 };
 
+/**
+ * Dashboard View
+ * Optimized for performance, theme consistency, and accessibility.
+ */
 export default function Dashboard() {
   const { lang } = useApp();
   const { t } = useTranslation('common');
 
+  /**
+   * Data fetching with language-based key for currency/format updates.
+   */
   const { data: stats, isLoading, isError } = useQuery({
     queryKey: ['dashboardStats', lang],
     queryFn: fetchDashboardStats,
@@ -24,72 +35,81 @@ export default function Dashboard() {
   });
 
   return (
-    <div className="space-y-6 md:space-y-10 p-4 md:p-0">
+    <div className="space-y-8 md:space-y-12 p-4 md:p-0 transition-colors duration-300">
       <header>
-        {/* Adjusted Font Size and Tracking for Mobile */}
-        <h1 className="text-2xl md:text-4xl font-black uppercase italic tracking-tight md:tracking-tighter text-white">
+        {/* Title: Non-All-Caps, Responsive Size, Theme-Aware */}
+        <h1 className="text-3xl md:text-5xl font-black italic tracking-tight text-slate-900 dark:text-white leading-tight">
           {t('overview')}
         </h1>
+        <p className="text-slate-500 dark:text-slate-400 text-sm mt-2 font-medium">
+          {t('real_time_business_summary')}
+        </p>
       </header>
       
-      {/* Analytics Overview Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+      {/* Analytics Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5 md:gap-8">
         
         {/* Total Sales Card */}
-        <div className="bg-[#11161D] p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border border-white/5 space-y-4 hover:border-blue-500/30 transition-all duration-300">
-          <div className="w-10 h-10 md:w-12 md:h-12 bg-blue-600/20 rounded-2xl flex items-center justify-center text-blue-500">
-            <ShoppingBag size={20} className="md:w-6 md:h-6" />
+        <div className="group bg-white dark:bg-[#11161D] p-6 md:p-10 rounded-[2.5rem] md:rounded-[3.5rem] border border-slate-200 dark:border-white/5 space-y-5 hover:border-blue-500/50 transition-all duration-500 shadow-sm hover:shadow-2xl hover:shadow-blue-500/10">
+          <div className="w-12 h-12 md:w-14 md:h-14 bg-blue-50 dark:bg-blue-600/10 rounded-2xl flex items-center justify-center text-blue-600 dark:text-blue-500 group-hover:scale-110 transition-transform duration-300">
+            <ShoppingBag size={28} aria-hidden="true" />
           </div>
           <div>
-            <p className="text-slate-500 font-bold text-[10px] md:text-xs uppercase tracking-[0.15em] md:tracking-widest">
+            <p className="text-slate-500 dark:text-slate-400 font-bold text-xs tracking-widest uppercase opacity-70 mb-1">
               {t('total_sales')}
             </p>
-            <h2 className="text-2xl md:text-4xl font-black text-white">
+            <h2 className="text-3xl md:text-4xl font-black text-slate-900 dark:text-white tabular-nums">
               ৳ {stats.totalSales.toLocaleString()}
             </h2>
           </div>
         </div>
 
         {/* Net Profit Card */}
-        <div className="bg-[#11161D] p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border border-white/5 space-y-4 hover:border-green-500/30 transition-all duration-300">
-          <div className="w-10 h-10 md:w-12 md:h-12 bg-green-600/20 rounded-2xl flex items-center justify-center text-green-500">
-            <TrendingUp size={20} className="md:w-6 md:h-6" />
+        <div className="group bg-white dark:bg-[#11161D] p-6 md:p-10 rounded-[2.5rem] md:rounded-[3.5rem] border border-slate-200 dark:border-white/5 space-y-5 hover:border-green-500/50 transition-all duration-500 shadow-sm hover:shadow-2xl hover:shadow-green-500/10">
+          <div className="w-12 h-12 md:w-14 md:h-14 bg-green-50 dark:bg-green-600/10 rounded-2xl flex items-center justify-center text-green-600 dark:text-green-500 group-hover:scale-110 transition-transform duration-300">
+            <TrendingUp size={28} aria-hidden="true" />
           </div>
           <div>
-            <p className="text-slate-500 font-bold text-[10px] md:text-xs uppercase tracking-[0.15em] md:tracking-widest">
+            <p className="text-slate-500 dark:text-slate-400 font-bold text-xs tracking-widest uppercase opacity-70 mb-1">
               {t('net_profit')}
             </p>
-            <h2 className={`text-2xl md:text-4xl font-black ${stats.totalProfit >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+            <h2 className={`text-3xl md:text-4xl font-black tabular-nums ${stats.totalProfit >= 0 ? 'text-green-600 dark:text-green-500' : 'text-red-600 dark:text-red-500'}`}>
               ৳ {stats.totalProfit.toLocaleString()}
             </h2>
           </div>
         </div>
 
         {/* Total Orders Card */}
-        <div className="bg-[#11161D] p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border border-white/5 space-y-4 hover:border-purple-500/30 transition-all duration-300">
-          <div className="w-10 h-10 md:w-12 md:h-12 bg-purple-600/20 rounded-2xl flex items-center justify-center text-purple-500">
-            <DollarSign size={20} className="md:w-6 md:h-6" />
+        <div className="group bg-white dark:bg-[#11161D] p-6 md:p-10 rounded-[2.5rem] md:rounded-[3.5rem] border border-slate-200 dark:border-white/5 space-y-5 hover:border-purple-500/50 transition-all duration-500 shadow-sm hover:shadow-2xl hover:shadow-purple-500/10">
+          <div className="w-12 h-12 md:w-14 md:h-14 bg-purple-50 dark:bg-purple-600/10 rounded-2xl flex items-center justify-center text-purple-600 dark:text-purple-500 group-hover:scale-110 transition-transform duration-300">
+            <DollarSign size={28} aria-hidden="true" />
           </div>
           <div>
-            <p className="text-slate-500 font-bold text-[10px] md:text-xs uppercase tracking-[0.15em] md:tracking-widest">
+            <p className="text-slate-500 dark:text-slate-400 font-bold text-xs tracking-widest uppercase opacity-70 mb-1">
               {t('total_orders')}
             </p>
-            <h2 className="text-2xl md:text-4xl font-black text-white">{stats.totalOrders}</h2>
+            <h2 className="text-3xl md:text-4xl font-black text-slate-900 dark:text-white tabular-nums">
+              {stats.totalOrders.toLocaleString()}
+            </h2>
           </div>
         </div>
       </div>
       
-      {/* Status Indicators */}
+      {/* Feedback States */}
       {isLoading && (
-        <p className="text-center text-slate-500 animate-pulse uppercase text-[10px] tracking-widest">
-          {t('syncing_data')}
-        </p>
+        <div className="flex justify-center py-6" aria-live="polite">
+          <p className="text-slate-400 animate-pulse text-[11px] font-bold tracking-[0.2em] uppercase">
+            {t('syncing_data')}...
+          </p>
+        </div>
       )}
 
       {isError && (
-        <p className="text-center text-red-500 uppercase text-[10px] tracking-widest">
-          {t('fetch_error')}
-        </p>
+        <div className="p-4 bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/20 rounded-2xl text-center" role="alert">
+          <p className="text-red-600 dark:text-red-500 text-xs font-bold tracking-widest uppercase">
+            {t('fetch_error')}
+          </p>
+        </div>
       )}
     </div>
   );
