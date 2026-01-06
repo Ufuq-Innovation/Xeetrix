@@ -1,6 +1,6 @@
 "use client";
 
-import { AppProvider, useAppContext } from "@/context/AppContext";
+import { AppProvider, useApp } from "@/context/AppContext";
 import "./globals.css";
 import "@/lib/i18n"; 
 
@@ -9,7 +9,7 @@ import "@/lib/i18n";
  * It dynamically updates 'lang' and 'dir' based on the global state.
  */
 function RootLayoutContent({ children }) {
-  const { state } = useAppContext();
+  const { state } = useApp();
 
   return (
     <html lang={state?.language || "en"} dir={state?.isRTL ? "rtl" : "ltr"}>
