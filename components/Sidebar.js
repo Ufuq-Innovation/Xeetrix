@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
-import { useApp } from "@/context/AppContext"; // AppContext কানেক্ট করলাম
+import { useApp } from "@/context/AppContext"; // AppContext Connect
 import { 
   LayoutDashboard, ShoppingCart, Wallet, Package, 
   Truck, Megaphone, BarChart, Settings, Menu, X, PlusCircle 
@@ -13,12 +13,12 @@ import {
 export default function Sidebar() {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
-  const { t } = useTranslation(); // 'common' সরিয়ে দিলাম যদি ট্রান্সলেশন লোড না হয়
-  const { lang } = useApp(); // গ্লোবাল ল্যাঙ্গুয়েজ স্টেট
+  const { t } = useTranslation(); 
+  const { lang } = useApp(); // Global Language State
 
   const menuItems = [
     { key: '/dashboard', path: '/dashboard', icon: LayoutDashboard },
-    { key: 'create_new_order', path: '/orders', icon: PlusCircle },
+    { key: 'orders', path: '/orders', icon: PlusCircle },
     { key: 'order_history', path: '/history', icon: ShoppingCart },
     { key: 'inventory', path: '/inventory', icon: Package },
     { key: 'finance_control', path: '/finance', icon: Wallet },
