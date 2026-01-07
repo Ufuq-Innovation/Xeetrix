@@ -6,9 +6,21 @@ import { useTranslation } from "react-i18next";
 import { useApp } from "@/context/AppContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { 
-  PlusCircle, History, Search, Trash2, ShoppingBag, 
-  User, Phone, Package, Hash, Percent, Truck, 
-  CheckCircle, Filter, ChevronRight
+  PlusCircle, 
+  History, 
+  Search, 
+  Trash2, 
+  ShoppingBag, 
+  User, 
+  Phone, 
+  Package, 
+  Hash, 
+  Percent, 
+  Truck, 
+  CheckCircle, 
+  Filter, 
+  ChevronRight,
+  Clock 
 } from "lucide-react";
 
 export default function UnifiedOrderPage() {
@@ -16,7 +28,6 @@ export default function UnifiedOrderPage() {
   const { t } = useTranslation("common");
   const queryClient = useQueryClient();
 
-  // ১. স্টেট এবং মাউন্ট হ্যান্ডলিং
   const [mounted, setMounted] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   
@@ -43,7 +54,6 @@ export default function UnifiedOrderPage() {
   };
   const [formData, setFormData] = useState(initialFormState);
 
-  /* ===================== DATA FETCHING ===================== */
   const { data: inventory = [], isLoading: invLoading } = useQuery({
     queryKey: ['inventory', lang],
     queryFn: async () => {
@@ -62,7 +72,6 @@ export default function UnifiedOrderPage() {
     }
   });
 
-  /* ===================== MUTATIONS ===================== */
   const createOrderMutation = useMutation({
     mutationFn: async (newOrder) => {
       const res = await fetch('/api/orders', {
@@ -89,7 +98,6 @@ export default function UnifiedOrderPage() {
     }
   });
 
-  /* ===================== LOGIC ===================== */
   const handleProductChange = (e) => {
     const selectedId = e.target.value;
     const product = inventory.find(p => p._id === selectedId);
@@ -113,10 +121,6 @@ export default function UnifiedOrderPage() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (inventory.find(p => p._id === formData.productId)?.stock < formData.quantity) {
-      toast.error(t('insufficient_stock_alert'));
-      return;
-    }
     createOrderMutation.mutate({ ...formData, netProfit: preview.netProfit });
   };
 
@@ -242,24 +246,6 @@ export default function UnifiedOrderPage() {
                 <div className={`text-4xl font-black italic tracking-tighter ${preview.netProfit >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                   {currency} {preview.netProfit.toLocaleString()}
                 </div>
-              </div>
-            </div>
-          </div>
-          
-          {/* Quick Stats */}
-          <div className="bg-[#11161D] p-6 rounded-[2rem] border border-white/5">
-            <div className="flex items-center gap-3 text-slate-400 mb-4">
-              <History size={16} />
-              <span className="text-[10px] font-black uppercase tracking-widest">{t('order_stats')}</span>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-white/5 p-4 rounded-2xl">
-                <p className="text-[9px] font-bold text-slate-500 uppercase">{t('pending_orders')}</p>
-                <p className="text-xl font-black text-white">{orders.filter(o => o.status === 'pending').length}</p>
-              </div>
-              <div className="bg-white/5 p-4 rounded-2xl">
-                <p className="text-[9px] font-bold text-slate-500 uppercase">{t('completed')}</p>
-                <p className="text-xl font-black text-green-500">{orders.filter(o => o.status === 'delivered').length}</p>
               </div>
             </div>
           </div>
