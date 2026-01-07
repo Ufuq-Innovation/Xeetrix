@@ -1,38 +1,54 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { useApp } from "@/context/AppContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Edit2, Package, TrendingUp, DollarSign, Hash, Tag, User, FileText, CheckCircle } from "lucide-react";
+import { Edit2, Package, TrendingUp, DollarSign, Hash, Tag, User, CheckCircle } from "lucide-react";
 
 export default function InventoryPage() {
-  const { lang, currency } = useApp(); // currencyContext থেকে সিম্বল নেওয়া হচ্ছে (৳ বা $)
+  const context = useApp();
+  const lang = context?.lang || "en";
+  const currency = context?.currency || "৳"; // Default value for safety
+  
   const { t } = useTranslation("common");
   const queryClient = useQueryClient();
   const [editingId, setEditingId] = useState(null);
+  
+  // Client-side hydration safety
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   const initialFormState = {
     name: "", stock: "", sku: "", costPrice: "", sellingPrice: "", description: "", category: "", source: ""
   };
   const [formData, setFormData] = useState(initialFormState);
 
+  // --- Data Fetching ---
   const { data: products = [], isLoading } = useQuery({
     queryKey: ["inventory", lang],
     queryFn: async () => {
-      const res = await fetch("/api/inventory");
-      const data = await res.json();
-      return data.success ? data.products : [];
+      try {
+        const res = await fetch("/api/inventory");
+        if (!res.ok) throw new Error("Network response was not ok");
+        const data = await res.json();
+        return data.success ? data.products : [];
+      } catch (error) {
+        console.error("Fetch Error:", error);
+        return [];
+      }
     },
   });
 
-  // --- Stats Calculation (Translation & Currency Integrated) ---
+  // --- Stats Calculation with Safety Checks ---
   const statsData = useMemo(() => {
-    const s = products.reduce((acc, item) => {
-      const stock = Number(item.stock) || 0;
+    const safeProducts = Array.isArray(products) ? products : [];
+    const s = safeProducts.reduce((acc, item) => {
+      const stock = Number(item?.stock) || 0;
+      const cost = Number(item?.costPrice) || 0;
       acc.totalStock += stock;
-      acc.totalValue += (Number(item.costPrice) || 0) * stock;
+      acc.totalValue += cost * stock;
       if (stock <= 0) acc.outOfStock += 1;
       return acc;
     }, { totalStock: 0, totalValue: 0, outOfStock: 0 });
@@ -40,11 +56,12 @@ export default function InventoryPage() {
     return [
       { label: t("total_stock"), val: s.totalStock, icon: Package, color: "blue" },
       { label: t("inventory_value"), val: `${currency} ${s.totalValue.toLocaleString()}`, icon: DollarSign, color: "green" },
-      { label: t("total_products"), val: products.length, icon: Hash, color: "purple" },
+      { label: t("total_products"), val: safeProducts.length, icon: Hash, color: "purple" },
       { label: t("out_of_stock"), val: s.outOfStock, icon: TrendingUp, color: "red", alert: s.outOfStock > 0 }
     ];
   }, [products, t, currency]);
 
+  // --- Mutation ---
   const productMutation = useMutation({
     mutationFn: async (body) => {
       const res = await fetch("/api/inventory", {
@@ -54,10 +71,14 @@ export default function InventoryPage() {
       });
       return res.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries(["inventory"]);
-      cancelEdit();
-      toast.success(t("success"));
+    onSuccess: (res) => {
+      if (res.success) {
+        queryClient.invalidateQueries(["inventory"]);
+        cancelEdit();
+        toast.success(t("success"));
+      } else {
+        toast.error(res.message || t("fetch_error"));
+      }
     },
     onError: () => toast.error(t("fetch_error"))
   });
@@ -67,7 +88,6 @@ export default function InventoryPage() {
     setFormData(initialFormState);
   };
 
-  // Dynamic Input Schema
   const inputs = [
     { name: "name", label: t("product_name"), req: true, placeholder: t("product_name_placeholder") },
     { name: "category", label: t("category"), icon: Tag, placeholder: t("category_placeholder") },
@@ -76,6 +96,9 @@ export default function InventoryPage() {
     { name: "costPrice", label: `${t("cost_price")} (${currency})`, type: "number" },
     { name: "sellingPrice", label: `${t("selling_price")} (${currency})`, type: "number" },
   ];
+
+  // Prevent rendering until mounted to avoid hydration error
+  if (!mounted) return null;
 
   return (
     <div className="space-y-8 p-4 md:p-6 max-w-7xl mx-auto">
@@ -97,12 +120,12 @@ export default function InventoryPage() {
         {statsData.map((stat, i) => (
           <div key={i} className="bg-[#11161D] p-5 rounded-2xl border border-white/5">
             <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <p className="text-[10px] font-bold uppercase text-slate-500 tracking-widest">{stat.label}</p>
-                <p className={`text-2xl font-black ${stat.alert ? 'text-red-500' : 'text-white'}`}>{stat.val}</p>
+              <div className="space-y-1 overflow-hidden">
+                <p className="text-[10px] font-bold uppercase text-slate-500 tracking-widest truncate">{stat.label}</p>
+                <p className={`text-xl md:text-2xl font-black truncate ${stat.alert ? 'text-red-500' : 'text-white'}`}>{stat.val}</p>
               </div>
-              <div className={`p-3 bg-${stat.color}-500/10 rounded-xl`}>
-                <stat.icon className={`text-${stat.color}-500`} size={20} />
+              <div className={`p-3 bg-white/5 rounded-xl flex-shrink-0`}>
+                <stat.icon className="text-slate-400" size={20} />
               </div>
             </div>
           </div>
@@ -128,7 +151,7 @@ export default function InventoryPage() {
                   required={input.req}
                   placeholder={input.placeholder}
                   className={`w-full p-4 bg-[#1a2230] border border-white/10 rounded-2xl text-white outline-none focus:ring-2 focus:ring-blue-500/40 transition-all ${input.icon ? 'pl-12' : 'px-5'}`}
-                  value={formData[input.name]}
+                  value={formData[input.name] || ""}
                   onChange={(e) => setFormData({ ...formData, [input.name]: e.target.value })}
                 />
               </div>
@@ -144,34 +167,34 @@ export default function InventoryPage() {
       </form>
 
       {/* Product Table */}
-      <div className="bg-[#11161D] rounded-2xl border border-white/5 overflow-hidden">
-        <div className="overflow-x-auto">
+      <div className="bg-[#11161D] rounded-2xl border border-white/5 overflow-hidden shadow-xl">
+        <div className="overflow-x-auto text-left">
           <table className="w-full">
             <thead className="bg-white/5 text-[10px] uppercase text-slate-500 tracking-widest">
               <tr>
                 {["product", "category", "source", "stock", "cost_price", "selling_price", "action"].map(k => (
-                  <th key={k} className={`p-5 font-bold ${k === 'action' ? 'text-right' : 'text-left'}`}>{t(k)}</th>
+                  <th key={k} className="p-5 font-bold">{t(k)}</th>
                 ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
-              {products.length === 0 ? (
+              {!products || products.length === 0 ? (
                 <tr><td colSpan="7" className="p-12 text-center text-slate-500 italic font-medium">{t("no_stock_available")}</td></tr>
               ) : (
                 products.map((item) => (
                   <tr key={item._id} className="hover:bg-white/[0.02] transition-colors group">
                     <td className="p-5">
-                      <div className="font-black text-slate-200 uppercase tracking-tight">{item.name}</div>
-                      <div className="text-[10px] text-slate-500 mt-0.5">{item.sku}</div>
+                      <div className="font-black text-slate-200 uppercase tracking-tight">{item?.name}</div>
+                      <div className="text-[10px] text-slate-500 mt-0.5">{item?.sku}</div>
                     </td>
-                    <td className="p-5"><span className="px-3 py-1 bg-purple-500/10 text-purple-400 rounded-lg text-[10px] font-bold uppercase">{item.category || "N/A"}</span></td>
-                    <td className="p-5 text-xs text-slate-400 font-medium">{item.source || "N/A"}</td>
-                    <td className={`p-5 font-black text-lg ${Number(item.stock) <= 10 ? 'text-yellow-500' : 'text-green-500'}`}>{item.stock}</td>
-                    <td className="p-5 text-xs text-slate-500 font-mono">{currency} {Number(item.costPrice).toLocaleString()}</td>
-                    <td className="p-5 font-black text-green-400 font-mono">{currency} {Number(item.sellingPrice).toLocaleString()}</td>
+                    <td className="p-5"><span className="px-3 py-1 bg-purple-500/10 text-purple-400 rounded-lg text-[10px] font-bold uppercase">{item?.category || "N/A"}</span></td>
+                    <td className="p-5 text-xs text-slate-400 font-medium">{item?.source || "N/A"}</td>
+                    <td className={`p-5 font-black text-lg ${Number(item?.stock) <= 10 ? 'text-yellow-500' : 'text-green-500'}`}>{item?.stock}</td>
+                    <td className="p-5 text-xs text-slate-500 font-mono">{currency} {Number(item?.costPrice || 0).toLocaleString()}</td>
+                    <td className="p-5 font-black text-green-400 font-mono">{currency} {Number(item?.sellingPrice || 0).toLocaleString()}</td>
                     <td className="p-5 text-right">
                       <button onClick={() => { setEditingId(item._id); setFormData(item); window.scrollTo({top: 0, behavior: 'smooth'}); }} 
-                              className="text-yellow-500 bg-yellow-500/10 p-2.5 rounded-xl hover:bg-yellow-500 hover:text-white transition-all shadow-sm">
+                              className="text-yellow-500 bg-yellow-500/10 p-2.5 rounded-xl hover:bg-yellow-500 hover:text-white transition-all">
                         <Edit2 size={14} />
                       </button>
                     </td>
