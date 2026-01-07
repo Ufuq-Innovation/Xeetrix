@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { useApp } from "@/context/AppContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ShoppingBag, Trash2, Clock, User, Package, DollarSign, Truck, Percent, Hash, CheckCircle } from 'lucide-react';
+import { ShoppingBag, Trash2, Clock, User, Package, Truck, Percent, Hash, CheckCircle } from 'lucide-react';
 
 export default function OrdersPage() {
   const { lang } = useApp();
@@ -25,7 +25,7 @@ export default function OrdersPage() {
     otherExpense: 0,
   });
 
-  // 1. Fetch Inventory Data
+  // Fetch Inventory Data
   const { data: inventory = [], isLoading: inventoryLoading } = useQuery({
     queryKey: ['inventory', lang],
     queryFn: async () => {
@@ -35,7 +35,7 @@ export default function OrdersPage() {
     }
   });
 
-  // 2. Fetch Recent Orders History
+  // Fetch Recent Orders
   const { data: orders = [], isLoading: ordersLoading } = useQuery({
     queryKey: ['orders', lang],
     queryFn: async () => {
@@ -45,7 +45,7 @@ export default function OrdersPage() {
     }
   });
 
-  // 3. Create Order Mutation
+  // Create Order Mutation
   const createOrderMutation = useMutation({
     mutationFn: async (newOrder) => {
       const res = await fetch('/api/orders', {
@@ -69,11 +69,11 @@ export default function OrdersPage() {
       });
     },
     onError: () => {
-      toast.error(t('order_failed'), { id: 'order' });
+      toast.error(t('fetch_error'), { id: 'order' });
     },
   });
 
-  // 4. Delete Order Mutation
+  // Delete Order Mutation
   const deleteOrderMutation = useMutation({
     mutationFn: async (id) => {
       const res = await fetch(`/api/orders?id=${id}`, { method: 'DELETE' });
@@ -87,7 +87,7 @@ export default function OrdersPage() {
       toast.success(t('order_deleted'), { id: 'delete-order' });
     },
     onError: () => {
-      toast.error(t('delete_failed'), { id: 'delete-order' });
+      toast.error(t('fetch_error'), { id: 'delete-order' });
     },
   });
 
@@ -136,10 +136,7 @@ export default function OrdersPage() {
     const totalSell = (formData.sellingPrice - formData.discount) * formData.quantity;
     const totalCost = formData.costPrice * formData.quantity;
     const netProfit = totalSell - totalCost - formData.courierCost - formData.otherExpense;
-    return {
-      totalSell, totalCost, netProfit,
-      profitPercentage: totalCost > 0 ? ((netProfit / totalCost) * 100).toFixed(1) : 0
-    };
+    return { totalSell, totalCost, netProfit };
   })();
 
   return (
@@ -165,8 +162,10 @@ export default function OrdersPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Order Form */}
-        <div className="lg:col-span-2 bg-[#11161D] p-6 rounded-2xl border border-white/5">
-          <h3 className="text-xl font-bold text-white mb-6">{t('order_details')}</h3>
+        <div className="lg:col-span-2 bg-[#11161D] p-6 rounded-2xl border border-white/5 shadow-2xl">
+          <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+            <CheckCircle className="text-blue-500" size={20} /> {t('order_details')}
+          </h3>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -175,8 +174,8 @@ export default function OrdersPage() {
                 </label>
                 <input 
                   type="text" 
-                  placeholder={t('customer_name_placeholder')}
-                  className="w-full p-3.5 bg-[#1a2230] border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-blue-500/50 outline-none transition-all"
+                  placeholder={t('customer_name')}
+                  className="w-full p-3.5 bg-[#1a2230] border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-blue-500/50 outline-none"
                   value={formData.customerName} 
                   onChange={(e) => setFormData({...formData, customerName: e.target.value})} 
                 />
@@ -187,8 +186,8 @@ export default function OrdersPage() {
                 </label>
                 <input 
                   type="text" 
-                  placeholder={t('phone_number_placeholder')}
-                  className="w-full p-3.5 bg-[#1a2230] border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-blue-500/50 outline-none transition-all"
+                  placeholder={t('phone_number')}
+                  className="w-full p-3.5 bg-[#1a2230] border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-blue-500/50 outline-none"
                   value={formData.customerPhone} 
                   onChange={(e) => setFormData({...formData, customerPhone: e.target.value})} 
                 />
@@ -197,16 +196,16 @@ export default function OrdersPage() {
 
             <div>
               <label className="text-sm text-slate-400 mb-2 flex items-center gap-2">
-                <Package size={16} /> {t('select_product')} *
+                <Package size={16} /> {t('product')} *
               </label>
               <select 
-                className="w-full p-3.5 bg-[#1a2230] border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-blue-500/50 outline-none transition-all appearance-none"
+                className="w-full p-3.5 bg-[#1a2230] border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-blue-500/50 outline-none appearance-none"
                 value={formData.productId} 
                 onChange={handleProductChange}
               >
                 <option value="">{t('select_a_product')}</option>
                 {inventoryLoading ? (
-                  <option disabled>{t('loading_products')}</option>
+                  <option disabled>{t('syncing')}</option>
                 ) : (
                   inventory.map((item) => (
                     <option key={item._id} value={item._id}>
@@ -224,7 +223,7 @@ export default function OrdersPage() {
                 </label>
                 <input 
                   type="number" min="1"
-                  className="w-full p-3.5 bg-[#1a2230] border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-blue-500/50 outline-none transition-all"
+                  className="w-full p-3.5 bg-[#1a2230] border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-blue-500/50"
                   value={formData.quantity} 
                   onChange={(e) => setFormData({...formData, quantity: Number(e.target.value)})} 
                 />
@@ -234,10 +233,10 @@ export default function OrdersPage() {
                   <Percent size={16} /> {t('discount')}
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">৳</span>
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-bold">৳</span>
                   <input 
                     type="number"
-                    className="w-full p-3.5 pl-10 bg-[#1a2230] border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-blue-500/50 outline-none transition-all"
+                    className="w-full p-3.5 pl-10 bg-[#1a2230] border border-white/10 rounded-xl text-white outline-none"
                     value={formData.discount} 
                     onChange={(e) => setFormData({...formData, discount: Number(e.target.value)})} 
                   />
@@ -248,10 +247,10 @@ export default function OrdersPage() {
                   <Truck size={16} /> {t('courier_cost')}
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">৳</span>
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-bold">৳</span>
                   <input 
                     type="number"
-                    className="w-full p-3.5 pl-10 bg-[#1a2230] border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-blue-500/50 outline-none transition-all"
+                    className="w-full p-3.5 pl-10 bg-[#1a2230] border border-white/10 rounded-xl text-white outline-none"
                     value={formData.courierCost} 
                     onChange={(e) => setFormData({...formData, courierCost: Number(e.target.value)})} 
                   />
@@ -262,7 +261,7 @@ export default function OrdersPage() {
             <button 
               type="submit" 
               disabled={createOrderMutation.isPending || !formData.productId}
-              className="w-full p-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 rounded-xl font-bold uppercase text-white transition-all disabled:opacity-50 flex items-center justify-center gap-3 shadow-lg"
+              className="w-full p-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 rounded-xl font-black uppercase text-white shadow-lg shadow-blue-500/20 flex items-center justify-center gap-3 transition-all active:scale-[0.98]"
             >
               {createOrderMutation.isPending ? (
                 <><div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>{t('saving')}</>
@@ -276,102 +275,105 @@ export default function OrdersPage() {
         {/* Preview & Stats */}
         <div className="space-y-6">
           <div className="bg-gradient-to-br from-[#11161D] to-[#0d1219] p-6 rounded-2xl border border-white/5">
-            <h3 className="text-lg font-bold text-white mb-4">{t('order_preview')}</h3>
+            <h3 className="text-lg font-bold text-white mb-4 italic uppercase">{t('order_preview')}</h3>
             <div className="space-y-4">
-              <div className="flex justify-between items-center p-3 bg-white/5 rounded-xl">
-                <span className="text-slate-400">{t('total_sell')}</span>
+              <div className="flex justify-between items-center p-3 bg-white/5 rounded-xl border border-white/5">
+                <span className="text-slate-400">{t('total_sales')}</span>
                 <span className="text-green-500 font-bold">৳ {preview.totalSell.toLocaleString()}</span>
               </div>
-              <div className="flex justify-between items-center p-3 bg-white/5 rounded-xl">
+              <div className="flex justify-between items-center p-3 bg-white/5 rounded-xl border border-white/5">
                 <span className="text-slate-400">{t('total_cost')}</span>
                 <span className="text-red-400 font-bold">৳ {preview.totalCost.toLocaleString()}</span>
               </div>
-              <div className="flex justify-between items-center p-3 bg-white/5 rounded-xl border-t border-white/10 pt-4">
-                <span className="text-white font-bold">{t('net_profit')}</span>
+              <div className="flex justify-between items-center p-3 bg-blue-500/10 rounded-xl border border-blue-500/20 pt-4">
+                <span className="text-white font-black uppercase text-sm tracking-widest">{t('net_profit')}</span>
                 <span className={`text-2xl font-black ${preview.netProfit >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                   ৳ {preview.netProfit.toLocaleString()}
                 </span>
               </div>
             </div>
           </div>
+          
           <div className="bg-[#11161D] p-6 rounded-2xl border border-white/5">
             <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
               <Clock className="text-blue-500" size={20} /> {t('order_stats')}
             </h3>
             <div className="space-y-3">
-              <div className="flex justify-between items-center">
+              <div className="flex justify-between items-center text-sm">
                 <span className="text-slate-400">{t('total_orders')}</span>
-                <span className="text-white font-bold">{orders.length}</span>
+                <span className="text-white font-mono">{orders.length}</span>
               </div>
-              <div className="flex justify-between items-center">
+              <div className="flex justify-between items-center text-sm">
                 <span className="text-slate-400">{t('pending_orders')}</span>
-                <span className="text-yellow-500 font-bold">{orders.filter(o => o.status === 'pending').length}</span>
+                <span className="text-yellow-500 font-mono">{orders.filter(o => o.status === 'pending').length}</span>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Orders Table */}
-      <div className="bg-[#11161D] rounded-2xl border border-white/5 overflow-hidden">
-        <div className="p-6 border-b border-white/5 flex items-center justify-between">
-          <h3 className="text-lg font-semibold flex items-center gap-2 text-white">
+      {/* Recent Orders Table */}
+      <div className="bg-[#11161D] rounded-2xl border border-white/5 overflow-hidden shadow-2xl">
+        <div className="p-6 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
+          <h3 className="text-lg font-bold flex items-center gap-2 text-white italic uppercase">
             <Clock className="text-blue-500" size={20} /> {t('recent_orders')}
           </h3>
-          <span className="text-sm text-slate-500">{orders.length} {t('orders')}</span>
+          <span className="px-3 py-1 bg-blue-500/10 text-blue-500 rounded-full text-xs font-bold uppercase tracking-tighter">
+            {orders.length} {t('actions')}
+          </span>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[800px]">
+          <table className="w-full min-w-[900px]">
             <thead className="bg-white/5">
-              <tr className="text-xs uppercase text-slate-500">
-                <th className="p-4 text-left font-medium">{t('customer')}</th>
-                <th className="p-4 text-left font-medium">{t('product')}</th>
-                <th className="p-4 text-left font-medium">{t('quantity')}</th>
-                <th className="p-4 text-left font-medium">{t('total_amount')}</th>
-                <th className="p-4 text-left font-medium">{t('profit')}</th>
-                <th className="p-4 text-left font-medium">{t('status')}</th>
-                <th className="p-4 text-left font-medium">{t('date')}</th>
-                <th className="p-4 text-left font-medium">{t('action')}</th>
+              <tr className="text-[10px] uppercase text-slate-500 tracking-widest">
+                <th className="p-5 text-left font-bold">{t('customer')}</th>
+                <th className="p-5 text-left font-bold">{t('product')}</th>
+                <th className="p-5 text-left font-bold">{t('quantity')}</th>
+                <th className="p-5 text-left font-bold">{t('amount')}</th>
+                <th className="p-5 text-left font-bold">{t('profit')}</th>
+                <th className="p-5 text-left font-bold">{t('status')}</th>
+                <th className="p-5 text-left font-bold">{t('date')}</th>
+                <th className="p-5 text-left font-bold">{t('action')}</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-white/5">
               {ordersLoading ? (
                 <tr>
-                  <td colSpan="8" className="p-8 text-center text-slate-500">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-2"></div>
+                  <td colSpan="8" className="p-12 text-center text-slate-500">
+                    <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500 mx-auto mb-4"></div>
                     {t('syncing_data')}
                   </td>
                 </tr>
               ) : orders.length === 0 ? (
                 <tr>
-                  <td colSpan="8" className="p-8 text-center text-slate-500">{t('no_orders_found')}</td>
+                  <td colSpan="8" className="p-12 text-center text-slate-400 font-medium italic">{t('no_orders_found')}</td>
                 </tr>
               ) : (
                 orders.map((order) => (
-                  <tr key={order._id} className="border-b border-white/5 hover:bg-white/2 transition-colors text-white">
-                    <td className="p-4">
-                      <div className="font-bold">{order.customerName}</div>
-                      <div className="text-xs text-slate-500">{order.customerPhone}</div>
+                  <tr key={order._id} className="group hover:bg-white/[0.03] transition-colors text-sm text-white">
+                    <td className="p-5">
+                      <div className="font-black text-slate-200">{order.customerName}</div>
+                      <div className="text-[11px] text-slate-500 font-mono tracking-tighter">{order.customerPhone}</div>
                     </td>
-                    <td className="p-4">{order.productName}</td>
-                    <td className="p-4 font-bold text-blue-500">{order.quantity}</td>
-                    <td className="p-4 text-green-400 font-bold">
+                    <td className="p-5 font-medium">{order.productName}</td>
+                    <td className="p-5"><span className="px-2 py-1 bg-slate-800 rounded font-mono text-xs">{order.quantity}</span></td>
+                    <td className="p-5 font-black text-green-400">
                       ৳ {((order.sellingPrice - order.discount) * order.quantity).toLocaleString()}
                     </td>
-                    <td className="p-4">
-                      <span className={`font-bold ${order.netProfit >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                    <td className="p-5 font-bold">
+                      <span className={order.netProfit >= 0 ? 'text-green-500' : 'text-red-500'}>
                         ৳ {order.netProfit?.toLocaleString()}
                       </span>
                     </td>
-                    <td className="p-4">
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium bg-blue-500/10 text-blue-400 uppercase`}>
+                    <td className="p-5">
+                      <span className="px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest bg-blue-500/10 text-blue-400 border border-blue-500/20">
                         {t(order.status?.toLowerCase() || 'pending')}
                       </span>
                     </td>
-                    <td className="p-4 text-xs text-slate-500">{new Date(order.createdAt).toLocaleDateString()}</td>
-                    <td className="p-4">
-                      <button onClick={() => confirmDeleteOrder(order._id)} className="p-2 text-slate-400 hover:text-red-500 transition-colors">
-                        <Trash2 size={18} />
+                    <td className="p-5 text-xs text-slate-500 font-mono">{new Date(order.createdAt).toLocaleDateString()}</td>
+                    <td className="p-5">
+                      <button onClick={() => confirmDeleteOrder(order._id)} className="p-2.5 bg-red-500/5 text-slate-500 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all active:scale-90">
+                        <Trash2 size={16} />
                       </button>
                     </td>
                   </tr>
