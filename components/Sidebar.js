@@ -18,8 +18,7 @@ export default function Sidebar() {
 
   const menuItems = [
     { key: '/dashboard', path: '/dashboard', icon: LayoutDashboard },
-    { key: 'orders', path: '/orders', icon: PlusCircle },
-    { key: 'order_history', path: '/history', icon: ShoppingCart },
+    { key: '/orders', path: '/orders', icon: PlusCircle },
     { key: 'inventory', path: '/inventory', icon: Package },
     { key: 'finance_control', path: '/finance', icon: Wallet },
     { key: 'courier_management', path: '/courier', icon: Truck },
