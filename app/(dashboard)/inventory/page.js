@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { useApp } from "@/context/AppContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Edit2, Package, TrendingUp, DollarSign, Hash, Tag, User, FileText } from "lucide-react";
+import { Edit2, Package, TrendingUp, DollarSign, Hash, Tag, User, FileText, CheckCircle } from "lucide-react";
 
 export default function InventoryPage() {
   const { lang } = useApp();
@@ -56,55 +56,29 @@ export default function InventoryPage() {
       if (!res.ok) throw new Error("Save failed");
       return res.json();
     },
-
     onMutate: () => {
-      toast.loading(
-        editingId ? t("updating_product") : t("adding_product"),
-        { id: "product" }
-      );
+      toast.loading(editingId ? t("updating") : t("saving"), { id: "product" });
     },
-
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["inventory"] });
       queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
-
-      setFormData({
-        name: "",
-        stock: "",
-        sku: "",
-        costPrice: "",
-        sellingPrice: "",
-        description: "",
-        category: "",
-        source: "",
-      });
-      setEditingId(null);
-
-      toast.success(
-        editingId ? t("product_updated") : t("product_added"),
-        { id: "product" }
-      );
+      cancelEdit();
+      toast.success(editingId ? t("success") : t("success"), { id: "product" });
     },
-
     onError: () => {
-      toast.error(t("product_save_failed"), { id: "product" });
+      toast.error(t("fetch_error"), { id: "product" });
     },
   });
 
-  /* ===================== SUBMIT ===================== */
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!formData.name || !formData.stock) {
       toast.error(t("fill_required_fields"));
       return;
     }
-
-    productMutation.mutate(
-      editingId ? { ...formData, id: editingId } : formData
-    );
+    productMutation.mutate(editingId ? { ...formData, id: editingId } : formData);
   };
 
-  /* ===================== EDIT ===================== */
   const startEdit = (item) => {
     setEditingId(item._id);
     setFormData({
@@ -117,235 +91,147 @@ export default function InventoryPage() {
       category: item.category || "",
       source: item.source || "",
     });
-
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  /* ===================== CANCEL EDIT ===================== */
   const cancelEdit = () => {
     setEditingId(null);
-    setFormData({
-      name: "",
-      stock: "",
-      sku: "",
-      costPrice: "",
-      sellingPrice: "",
-      description: "",
-      category: "",
-      source: "",
-    });
+    setFormData({ name: "", stock: "", sku: "", costPrice: "", sellingPrice: "", description: "", category: "", source: "" });
   };
 
-  /* ===================== UI ===================== */
   return (
     <div className="space-y-8 p-4 md:p-6 max-w-7xl mx-auto">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl md:text-4xl font-black uppercase italic text-white">
+          <h1 className="text-3xl md:text-4xl font-black uppercase italic text-white tracking-tighter">
             {t("inventory")}
           </h1>
-          <p className="text-slate-400 mt-2">{t("manage_your_stock")}</p>
+          <p className="text-slate-400 mt-1">{t("manage_your_stock")}</p>
         </div>
         
-        <div className="flex items-center gap-2">
-          {editingId && (
-            <button
-              onClick={cancelEdit}
-              className="px-4 py-2 text-sm border border-slate-700 text-slate-400 hover:text-white rounded-lg transition-colors"
-            >
-              {t("cancel")}
-            </button>
-          )}
-        </div>
+        {editingId && (
+          <button
+            onClick={cancelEdit}
+            className="px-6 py-2.5 bg-red-500/10 text-red-500 border border-red-500/20 rounded-xl font-bold uppercase text-xs tracking-widest hover:bg-red-500 hover:text-white transition-all"
+          >
+            {t("cancel")}
+          </button>
+        )}
       </div>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-[#11161D] p-5 rounded-2xl border border-white/5">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-slate-400">{t("total_stock")}</p>
-              <p className="text-2xl font-bold text-white mt-1">{totalStock}</p>
-            </div>
-            <div className="p-3 bg-blue-500/10 rounded-xl">
-              <Package className="text-blue-500" size={20} />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-[#11161D] p-5 rounded-2xl border border-white/5">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-slate-400">{t("inventory_value")}</p>
-              <p className="text-2xl font-bold text-white mt-1">
-                ৳ {totalValue.toLocaleString()}
-              </p>
-            </div>
-            <div className="p-3 bg-green-500/10 rounded-xl">
-              <DollarSign className="text-green-500" size={20} />
+        {[
+          { label: t("total_stock"), val: totalStock, icon: Package, color: "blue" },
+          { label: t("inventory_value"), val: `৳ ${totalValue.toLocaleString()}`, icon: DollarSign, color: "green" },
+          { label: t("total_products"), val: totalProducts, icon: Hash, color: "purple" },
+          { label: t("out_of_stock"), val: outOfStock, icon: TrendingUp, color: "red", alert: outOfStock > 0 }
+        ].map((stat, i) => (
+          <div key={i} className="bg-[#11161D] p-5 rounded-2xl border border-white/5 shadow-xl">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">{stat.label}</p>
+                <p className={`text-2xl font-black ${stat.alert ? 'text-red-500' : 'text-white'}`}>{stat.val}</p>
+              </div>
+              <div className={`p-3 bg-${stat.color}-500/10 rounded-xl`}>
+                <stat.icon className={`text-${stat.color}-500`} size={22} />
+              </div>
             </div>
           </div>
-        </div>
-
-        <div className="bg-[#11161D] p-5 rounded-2xl border border-white/5">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-slate-400">{t("total_products")}</p>
-              <p className="text-2xl font-bold text-white mt-1">{totalProducts}</p>
-            </div>
-            <div className="p-3 bg-purple-500/10 rounded-xl">
-              <Hash className="text-purple-500" size={20} />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-[#11161D] p-5 rounded-2xl border border-white/5">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-slate-400">{t("out_of_stock")}</p>
-              <p className={`text-2xl font-bold mt-1 ${outOfStock > 0 ? 'text-red-500' : 'text-green-500'}`}>
-                {outOfStock}
-              </p>
-            </div>
-            <div className="p-3 bg-red-500/10 rounded-xl">
-              <TrendingUp className="text-red-500" size={20} />
-            </div>
-          </div>
-        </div>
+        ))}
       </div>
 
       {/* Add/Edit Product Form */}
-      <div className="bg-[#11161D] p-6 rounded-2xl border border-white/5">
-        <div className="flex items-center gap-2 mb-6">
-          <div className={`p-2 rounded-lg ${editingId ? 'bg-yellow-500/10' : 'bg-blue-500/10'}`}>
-            <Edit2 className={editingId ? 'text-yellow-500' : 'text-blue-500'} size={20} />
+      <div className="bg-[#11161D] p-6 rounded-2xl border border-white/5 shadow-2xl">
+        <div className="flex items-center gap-3 mb-8">
+          <div className={`p-3 rounded-2xl ${editingId ? 'bg-yellow-500/10' : 'bg-blue-500/10'}`}>
+            <Edit2 className={editingId ? 'text-yellow-500' : 'text-blue-500'} size={24} />
           </div>
-          <h3 className="text-xl font-bold text-white">
+          <h3 className="text-xl font-black text-white uppercase italic">
             {editingId ? t("edit_product") : t("add_new_product")}
           </h3>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm text-slate-400 mb-2">
-                {t("product_name")} *
-              </label>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase text-slate-500 tracking-widest ml-1">{t("product_name")} *</label>
               <input
                 required
                 placeholder={t("product_name_placeholder")}
-                className="w-full p-3.5 bg-[#1a2230] border border-white/10 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
+                className="w-full p-4 bg-[#1a2230] border border-white/10 rounded-2xl text-white outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
                 value={formData.name}
-                onChange={(e) =>
-                  setFormData({ ...formData, name: e.target.value })
-                }
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               />
             </div>
 
-            <div>
-              <label className="block text-sm text-slate-400 mb-2">
-                {t("category")}
-              </label>
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase text-slate-500 tracking-widest ml-1">{t("category")}</label>
               <div className="relative">
-                <Tag className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500" size={18} />
+                <Tag className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600" size={18} />
                 <input
                   placeholder={t("category_placeholder")}
-                  className="w-full p-3.5 pl-10 bg-[#1a2230] border border-white/10 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
+                  className="w-full p-4 pl-12 bg-[#1a2230] border border-white/10 rounded-2xl text-white outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
                   value={formData.category}
-                  onChange={(e) =>
-                    setFormData({ ...formData, category: e.target.value })
-                  }
+                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                 />
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm text-slate-400 mb-2">
-                {t("source_supplier")}
-              </label>
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase text-slate-500 tracking-widest ml-1">{t("source_supplier")}</label>
               <div className="relative">
-                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500" size={18} />
+                <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600" size={18} />
                 <input
                   placeholder={t("source_placeholder")}
-                  className="w-full p-3.5 pl-10 bg-[#1a2230] border border-white/10 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
+                  className="w-full p-4 pl-12 bg-[#1a2230] border border-white/10 rounded-2xl text-white outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
                   value={formData.source}
-                  onChange={(e) =>
-                    setFormData({ ...formData, source: e.target.value })
-                  }
+                  onChange={(e) => setFormData({ ...formData, source: e.target.value })}
                 />
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm text-slate-400 mb-2">
-                {t("stock_quantity")} *
-              </label>
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase text-slate-500 tracking-widest ml-1">{t("stock_quantity")} *</label>
               <input
-                required
-                type="number"
-                min="0"
-                placeholder="0"
-                className="w-full p-3.5 bg-[#1a2230] border border-white/10 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
+                required type="number" min="0"
+                className="w-full p-4 bg-[#1a2230] border border-white/10 rounded-2xl text-white outline-none"
                 value={formData.stock}
-                onChange={(e) =>
-                  setFormData({ ...formData, stock: e.target.value })
-                }
+                onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
               />
             </div>
 
-            <div>
-              <label className="block text-sm text-slate-400 mb-2">
-                {t("cost_price")}
-              </label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500">৳</span>
-                <input
-                  type="number"
-                  step="0.01"
-                  placeholder="0.00"
-                  className="w-full p-3.5 pl-10 bg-[#1a2230] border border-white/10 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
-                  value={formData.costPrice}
-                  onChange={(e) =>
-                    setFormData({ ...formData, costPrice: e.target.value })
-                  }
-                />
-              </div>
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase text-slate-500 tracking-widest ml-1">{t("cost_price")} (৳)</label>
+              <input
+                type="number" step="0.01"
+                className="w-full p-4 bg-[#1a2230] border border-white/10 rounded-2xl text-white outline-none"
+                value={formData.costPrice}
+                onChange={(e) => setFormData({ ...formData, costPrice: e.target.value })}
+              />
             </div>
 
-            <div>
-              <label className="block text-sm text-slate-400 mb-2">
-                {t("selling_price")}
-              </label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500">৳</span>
-                <input
-                  type="number"
-                  step="0.01"
-                  placeholder="0.00"
-                  className="w-full p-3.5 pl-10 bg-[#1a2230] border border-white/10 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
-                  value={formData.sellingPrice}
-                  onChange={(e) =>
-                    setFormData({ ...formData, sellingPrice: e.target.value })
-                  }
-                />
-              </div>
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase text-slate-500 tracking-widest ml-1">{t("selling_price")} (৳)</label>
+              <input
+                type="number" step="0.01"
+                className="w-full p-4 bg-[#1a2230] border border-white/10 rounded-2xl text-white outline-none"
+                value={formData.sellingPrice}
+                onChange={(e) => setFormData({ ...formData, sellingPrice: e.target.value })}
+              />
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm text-slate-400 mb-2">
-              {t("description")}
-            </label>
+          <div className="space-y-2">
+            <label className="text-xs font-bold uppercase text-slate-500 tracking-widest ml-1">{t("description")}</label>
             <div className="relative">
-              <FileText className="absolute left-3 top-3 text-slate-500" size={18} />
+              <FileText className="absolute left-4 top-4 text-slate-600" size={18} />
               <textarea
                 placeholder={t("description_placeholder")}
-                className="w-full p-3.5 pl-10 bg-[#1a2230] border border-white/10 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all min-h-[100px] resize-none"
+                className="w-full p-4 pl-12 bg-[#1a2230] border border-white/10 rounded-2xl text-white outline-none min-h-[100px] resize-none"
                 value={formData.description}
-                onChange={(e) =>
-                  setFormData({ ...formData, description: e.target.value })
-                }
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               />
             </div>
           </div>
@@ -353,127 +239,64 @@ export default function InventoryPage() {
           <button
             type="submit"
             disabled={productMutation.isPending}
-            className="w-full md:w-auto px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 rounded-xl font-bold uppercase text-white transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-blue-500/20"
+            className="w-full md:w-auto px-10 py-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 rounded-2xl font-black uppercase text-white shadow-xl shadow-blue-500/20 transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-3"
           >
-            {productMutation.isPending
-              ? t("processing")
-              : editingId
-              ? t("update_product")
-              : t("add_to_stock")}
+            {productMutation.isPending ? <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div> : <CheckCircle size={20} />}
+            {editingId ? t("update") : t("add_to_stock")}
           </button>
         </form>
       </div>
 
       {/* Products Table */}
-      <div className="bg-[#11161D] rounded-2xl border border-white/5 overflow-hidden">
-        <div className="p-6 border-b border-white/5">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold flex items-center gap-2 text-white">
-              <Package className="text-blue-500" size={20} />
-              {t("all_products")}
-            </h3>
-            <span className="text-sm text-slate-500">
-              {products.length} {t("products")}
-            </span>
-          </div>
+      <div className="bg-[#11161D] rounded-2xl border border-white/5 overflow-hidden shadow-2xl">
+        <div className="p-6 border-b border-white/5 bg-white/[0.02] flex items-center justify-between">
+          <h3 className="text-lg font-black flex items-center gap-2 text-white uppercase italic">
+            <Package className="text-blue-500" size={20} /> {t("all_products")}
+          </h3>
+          <span className="px-3 py-1 bg-blue-500/10 text-blue-500 rounded-full text-xs font-bold">
+            {products.length} {t("products")}
+          </span>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[800px]">
+          <table className="w-full min-w-[900px]">
             <thead className="bg-white/5">
-              <tr className="text-xs uppercase text-slate-500">
-                <th className="p-4 text-left font-medium">{t("product")}</th>
-                <th className="p-4 text-left font-medium">{t("category")}</th>
-                <th className="p-4 text-left font-medium">{t("source")}</th>
-                <th className="p-4 text-left font-medium">{t("stock")}</th>
-                <th className="p-4 text-left font-medium">{t("cost_price")}</th>
-                <th className="p-4 text-left font-medium">{t("selling_price")}</th>
-                <th className="p-4 text-right font-medium">{t("action")}</th>
+              <tr className="text-[10px] uppercase text-slate-500 tracking-widest">
+                <th className="p-5 text-left">{t("product")}</th>
+                <th className="p-5 text-left">{t("category")}</th>
+                <th className="p-5 text-left">{t("source")}</th>
+                <th className="p-5 text-left">{t("stock")}</th>
+                <th className="p-5 text-left">{t("cost_price")}</th>
+                <th className="p-5 text-left">{t("selling_price")}</th>
+                <th className="p-5 text-right">{t("action")}</th>
               </tr>
             </thead>
-            
-            <tbody>
+            <tbody className="divide-y divide-white/5">
               {isLoading ? (
-                <tr>
-                  <td colSpan="7" className="p-8 text-center">
-                    <div className="flex flex-col items-center gap-3">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-                      <p className="text-slate-500">{t("syncing_inventory")}</p>
-                    </div>
-                  </td>
-                </tr>
+                <tr><td colSpan="7" className="p-10 text-center text-slate-500 font-bold">{t("syncing_inventory")}</td></tr>
               ) : products.length === 0 ? (
-                <tr>
-                  <td colSpan="7" className="p-8 text-center">
-                    <div className="flex flex-col items-center gap-2">
-                      <div className="p-4 bg-white/5 rounded-full">
-                        <Package className="text-slate-600" size={24} />
-                      </div>
-                      <p className="text-slate-500">{t("no_stock_available")}</p>
-                    </div>
-                  </td>
-                </tr>
+                <tr><td colSpan="7" className="p-10 text-center text-slate-400 italic">{t("no_stock_available")}</td></tr>
               ) : (
                 products.map((item) => (
-                  <tr 
-                    key={item._id} 
-                    className="border-b border-white/5 hover:bg-white/2 transition-colors"
-                  >
-                    <td className="p-4">
-                      <div className="font-bold text-white">{item.name}</div>
-                      {item.description && (
-                        <div className="text-xs text-slate-500 mt-1 truncate max-w-xs">
-                          {item.description}
-                        </div>
-                      )}
+                  <tr key={item._id} className="group hover:bg-white/[0.03] transition-colors">
+                    <td className="p-5">
+                      <div className="font-black text-slate-200">{item.name}</div>
+                      <div className="text-[10px] text-slate-500 truncate max-w-[150px]">{item.description}</div>
                     </td>
-                    <td className="p-4">
-                      {item.category ? (
-                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-purple-500/10 text-purple-400">
-                          {item.category}
-                        </span>
-                      ) : (
-                        <span className="text-slate-500">N/A</span>
-                      )}
+                    <td className="p-5">
+                      <span className="px-3 py-1 bg-purple-500/10 text-purple-400 rounded-lg text-xs font-bold uppercase">{item.category || "N/A"}</span>
                     </td>
-                    <td className="p-4">
-                      {item.source ? (
-                        <span className="text-slate-300">{item.source}</span>
-                      ) : (
-                        <span className="text-slate-500">N/A</span>
-                      )}
-                    </td>
-                    <td className="p-4">
-                      <div className={`font-bold text-lg ${
-                        Number(item.stock) <= 0 
-                          ? 'text-red-500' 
-                          : Number(item.stock) <= 10 
-                            ? 'text-yellow-500' 
-                            : 'text-green-500'
-                      }`}>
+                    <td className="p-5 text-xs text-slate-400 font-medium">{item.source || "N/A"}</td>
+                    <td className="p-5">
+                      <span className={`text-lg font-black ${Number(item.stock) <= 0 ? 'text-red-500' : Number(item.stock) <= 10 ? 'text-yellow-500' : 'text-green-500'}`}>
                         {item.stock}
-                        {Number(item.stock) <= 10 && Number(item.stock) > 0 && (
-                          <span className="text-xs text-yellow-500 ml-1">({t("low_stock")})</span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="p-4">
-                      <span className="text-slate-400">
-                        ৳ {Number(item.costPrice || 0).toLocaleString()}
                       </span>
                     </td>
-                    <td className="p-4">
-                      <span className="text-green-400 font-medium">
-                        ৳ {Number(item.sellingPrice || 0).toLocaleString()}
-                      </span>
-                    </td>
-                    <td className="p-4 text-right">
-                      <button
-                        onClick={() => startEdit(item)}
-                        className="px-4 py-2 rounded-lg bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-500 font-medium transition-colors flex items-center gap-2 ml-auto"
-                      >
-                        <Edit2 size={16} />
-                        {t("edit")}
+                    <td className="p-5 text-slate-400 font-mono text-xs">৳ {Number(item.costPrice || 0).toLocaleString()}</td>
+                    <td className="p-5 text-green-400 font-black">৳ {Number(item.sellingPrice || 0).toLocaleString()}</td>
+                    <td className="p-5 text-right">
+                      <button onClick={() => startEdit(item)} className="p-2.5 bg-yellow-500/5 text-yellow-600 hover:bg-yellow-500 hover:text-white rounded-xl transition-all ml-auto flex items-center gap-2 text-xs font-bold uppercase">
+                        <Edit2 size={14} /> {t("edit")}
                       </button>
                     </td>
                   </tr>
