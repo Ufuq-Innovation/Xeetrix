@@ -65,7 +65,7 @@ export default function InventoryPage() {
 
   const inputs = [
     { name: "name", label: t("product_name"), req: true, placeholder: t("product_name_placeholder") },
-    { name: "category", label: t("category"), icon: Tag, placeholder: t("category_placeholder") },
+    { name: "category", label: t("category"), icon: Tag, placeholder: t("category") },
     { name: "source", label: t("source_supplier"), icon: User, placeholder: t("source_placeholder") },
     { name: "stock", label: t("stock_quantity"), type: "number", req: true },
     { name: "costPrice", label: t("cost_price"), type: "number" },
