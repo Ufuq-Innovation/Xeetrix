@@ -1,18 +1,36 @@
 "use client";
 
-import React, { useState } from 'react';
-import { useTranslation } from 'react-i18next'; 
-import { toast } from 'sonner';
+import React, { useState, useMemo, useEffect } from "react";
+import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 import { useApp } from "@/context/AppContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ShoppingBag, Trash2, Clock, User, Package, Truck, Percent, Hash, CheckCircle } from 'lucide-react';
+import { 
+  PlusCircle, History, Search, Trash2, ShoppingBag, 
+  User, Phone, Package, Hash, Percent, Truck, 
+  CheckCircle, Clock, Square, CheckSquare, Filter
+} from "lucide-react";
 
-export default function OrdersPage() {
-  const { lang } = useApp();
-  const { t } = useTranslation('common');
+export default function UnifiedOrderPage() {
+  const context = useApp();
+  const { t } = useTranslation("common");
   const queryClient = useQueryClient();
+
+  // ১. স্টেট এবং সেফটি হ্যান্ডলিং
+  const [mounted, setMounted] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedOrders, setSelectedOrders] = useState([]);
   
-  const [formData, setFormData] = useState({
+  useEffect(() => setMounted(true), []);
+
+  const lang = context?.lang || "en";
+  const currency = useMemo(() => {
+    const curr = context?.currency;
+    if (curr && typeof curr === 'object') return curr.symbol || "৳";
+    return curr || "৳";
+  }, [context?.currency]);
+
+  const initialFormState = {
     customerName: '',
     customerPhone: '',
     productId: '',
@@ -23,10 +41,12 @@ export default function OrdersPage() {
     discount: 0,
     courierCost: 100,
     otherExpense: 0,
-  });
+    paymentStatus: 'Pending'
+  };
+  const [formData, setFormData] = useState(initialFormState);
 
-  // Fetch Inventory Data
-  const { data: inventory = [], isLoading: inventoryLoading } = useQuery({
+  /* ===================== DATA FETCHING ===================== */
+  const { data: inventory = [], isLoading: invLoading } = useQuery({
     queryKey: ['inventory', lang],
     queryFn: async () => {
       const res = await fetch('/api/inventory');
@@ -35,7 +55,6 @@ export default function OrdersPage() {
     }
   });
 
-  // Fetch Recent Orders
   const { data: orders = [], isLoading: ordersLoading } = useQuery({
     queryKey: ['orders', lang],
     queryFn: async () => {
@@ -45,7 +64,7 @@ export default function OrdersPage() {
     }
   });
 
-  // Create Order Mutation
+  /* ===================== MUTATIONS ===================== */
   const createOrderMutation = useMutation({
     mutationFn: async (newOrder) => {
       const res = await fetch('/api/orders', {
@@ -53,44 +72,26 @@ export default function OrdersPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newOrder),
       });
-      if (!res.ok) throw new Error('Order failed');
       return res.json();
     },
-    onMutate: () => {
-      toast.loading(t('order_processing'), { id: 'order' });
-    },
     onSuccess: () => {
-      queryClient.invalidateQueries(['orders', 'dashboardStats', 'inventory']);
-      toast.success(t('order_successful_alert'), { id: 'order', duration: 3000 });
-      setFormData({
-        customerName: '', customerPhone: '', productId: '', productName: '',
-        quantity: 1, costPrice: 0, sellingPrice: 0, discount: 0,
-        courierCost: 100, otherExpense: 0,
-      });
-    },
-    onError: () => {
-      toast.error(t('fetch_error'), { id: 'order' });
-    },
+      queryClient.invalidateQueries(['orders', 'inventory', 'dashboardStats']);
+      setFormData(initialFormState);
+      toast.success(t('order_successful_alert'));
+    }
   });
 
-  // Delete Order Mutation
-  const deleteOrderMutation = useMutation({
+  const deleteMutation = useMutation({
     mutationFn: async (id) => {
-      const res = await fetch(`/api/orders?id=${id}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error('Delete failed');
-    },
-    onMutate: () => {
-      toast.loading(t('deleting_order'), { id: 'delete-order' });
+      await fetch(`/api/orders?id=${id}`, { method: 'DELETE' });
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['orders', 'dashboardStats']);
-      toast.success(t('order_deleted'), { id: 'delete-order' });
-    },
-    onError: () => {
-      toast.error(t('fetch_error'), { id: 'delete-order' });
-    },
+      toast.success(t('order_deleted'));
+    }
   });
 
+  /* ===================== LOGIC ===================== */
   const handleProductChange = (e) => {
     const selectedId = e.target.value;
     const product = inventory.find(p => p._id === selectedId);
@@ -105,284 +106,196 @@ export default function OrdersPage() {
     }
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!formData.customerName || !formData.customerPhone || !formData.productId) {
-      toast.error(t('fill_required_fields'));
-      return;
-    }
-    const product = inventory.find(p => p._id === formData.productId);
-    if (product && product.stock < formData.quantity) {
-      toast.error(t('insufficient_stock_alert'));
-      return;
-    }
-    const totalSell = (formData.sellingPrice - formData.discount) * formData.quantity;
-    const totalCost = formData.costPrice * formData.quantity;
-    const netProfit = totalSell - totalCost - formData.courierCost - formData.otherExpense;
-    createOrderMutation.mutate({ ...formData, netProfit });
-  };
-
-  const confirmDeleteOrder = (id) => {
-    toast.warning(t('confirm_delete'), {
-      action: {
-        label: t('delete'),
-        onClick: () => deleteOrderMutation.mutate(id)
-      },
-      duration: 5000,
-    });
-  };
-
-  const preview = (() => {
+  const preview = useMemo(() => {
     const totalSell = (formData.sellingPrice - formData.discount) * formData.quantity;
     const totalCost = formData.costPrice * formData.quantity;
     const netProfit = totalSell - totalCost - formData.courierCost - formData.otherExpense;
     return { totalSell, totalCost, netProfit };
-  })();
+  }, [formData]);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    createOrderMutation.mutate({ ...formData, netProfit: preview.netProfit });
+  };
+
+  const filteredOrders = orders.filter(o => 
+    o.customerName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    o.customerPhone?.includes(searchTerm)
+  );
+
+  if (!mounted) return null;
 
   return (
-    <div className="space-y-8 p-4 md:p-6 max-w-7xl mx-auto">
+    <div className="space-y-10 p-4 md:p-6 max-w-7xl mx-auto animate-in fade-in duration-500">
+      
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="p-3 bg-gradient-to-br from-blue-500/20 to-purple-600/20 rounded-2xl">
-            <ShoppingBag className="text-blue-500" size={28} />
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="p-3 bg-blue-500/10 rounded-2xl border border-blue-500/20 text-blue-500">
+            <ShoppingBag size={32} />
           </div>
           <div>
-            <h1 className="text-3xl md:text-4xl font-black uppercase italic text-white">
-              {t('create_new_order')}
+            <h1 className="text-3xl font-black uppercase italic text-white tracking-tighter">
+              {t('order_control_center')}
             </h1>
-            <p className="text-slate-400 mt-1">{t('manage_orders_and_customers')}</p>
+            <p className="text-slate-500 text-sm font-medium">{t('manage_orders_and_customers')}</p>
           </div>
         </div>
-        <div className="text-right">
-          <p className="text-sm text-slate-400">{t('total_orders')}</p>
-          <p className="text-xl font-bold text-white">{orders.length}</p>
-        </div>
-      </div>
+      </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Order Form */}
-        <div className="lg:col-span-2 bg-[#11161D] p-6 rounded-2xl border border-white/5 shadow-2xl">
-          <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
-            <CheckCircle className="text-blue-500" size={20} /> {t('order_details')}
-          </h3>
+      {/* SECTION 1: Dynamic Order Form */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2 bg-[#11161D] rounded-[2.5rem] border border-white/5 p-8 shadow-2xl">
+          <h2 className="text-lg font-black text-white uppercase italic mb-8 flex items-center gap-3">
+            <PlusCircle size={20} className="text-blue-500" />
+            {t('new_order_entry')}
+          </h2>
+
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm text-slate-400 mb-2 flex items-center gap-2">
-                  <User size={16} /> {t('customer_name')} *
-                </label>
-                <input 
-                  type="text" 
-                  placeholder={t('customer_name')}
-                  className="w-full p-3.5 bg-[#1a2230] border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-blue-500/50 outline-none"
-                  value={formData.customerName} 
-                  onChange={(e) => setFormData({...formData, customerName: e.target.value})} 
-                />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold uppercase text-slate-500 ml-1">{t('customer_name')}</label>
+                <div className="relative">
+                  <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600" size={16} />
+                  <input required className="w-full pl-12 pr-4 py-4 bg-[#1a2230] border border-white/10 rounded-2xl text-white outline-none focus:ring-2 focus:ring-blue-500/40" 
+                    value={formData.customerName} onChange={e => setFormData({...formData, customerName: e.target.value})} />
+                </div>
               </div>
-              <div>
-                <label className="text-sm text-slate-400 mb-2 flex items-center gap-2">
-                  <User size={16} /> {t('phone_number')} *
-                </label>
-                <input 
-                  type="text" 
-                  placeholder={t('phone_number')}
-                  className="w-full p-3.5 bg-[#1a2230] border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-blue-500/50 outline-none"
-                  value={formData.customerPhone} 
-                  onChange={(e) => setFormData({...formData, customerPhone: e.target.value})} 
-                />
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold uppercase text-slate-500 ml-1">{t('phone_number')}</label>
+                <div className="relative">
+                  <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600" size={16} />
+                  <input required className="w-full pl-12 pr-4 py-4 bg-[#1a2230] border border-white/10 rounded-2xl text-white outline-none focus:ring-2 focus:ring-blue-500/40" 
+                    value={formData.customerPhone} onChange={e => setFormData({...formData, customerPhone: e.target.value})} />
+                </div>
               </div>
             </div>
 
-            <div>
-              <label className="text-sm text-slate-400 mb-2 flex items-center gap-2">
-                <Package size={16} /> {t('product')} *
-              </label>
-              <select 
-                className="w-full p-3.5 bg-[#1a2230] border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-blue-500/50 outline-none appearance-none"
-                value={formData.productId} 
-                onChange={handleProductChange}
-              >
-                <option value="">{t('select_a_product')}</option>
-                {inventoryLoading ? (
-                  <option disabled>{t('syncing')}</option>
-                ) : (
-                  inventory.map((item) => (
-                    <option key={item._id} value={item._id}>
-                      {item.name} ({t('stock')}: {item.stock}) - ৳ {item.sellingPrice || 0}
-                    </option>
-                  ))
-                )}
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold uppercase text-slate-500 ml-1">{t('select_product')}</label>
+              <select required className="w-full p-4 bg-[#1a2230] border border-white/10 rounded-2xl text-white outline-none appearance-none" 
+                value={formData.productId} onChange={handleProductChange}>
+                <option value="">{t('choose_from_inventory')}</option>
+                {inventory.map(item => (
+                  <option key={item._id} value={item._id}>{item.name} ({t('stock')}: {item.stock})</option>
+                ))}
               </select>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="text-sm text-slate-400 mb-2 flex items-center gap-2">
-                  <Hash size={16} /> {t('quantity')} *
-                </label>
-                <input 
-                  type="number" min="1"
-                  className="w-full p-3.5 bg-[#1a2230] border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-blue-500/50"
-                  value={formData.quantity} 
-                  onChange={(e) => setFormData({...formData, quantity: Number(e.target.value)})} 
-                />
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold uppercase text-slate-500">{t('qty')}</label>
+                <input type="number" className="w-full p-4 bg-[#1a2230] border border-white/10 rounded-2xl text-white" 
+                  value={formData.quantity} onChange={e => setFormData({...formData, quantity: Number(e.target.value)})} />
               </div>
-              <div>
-                <label className="text-sm text-slate-400 mb-2 flex items-center gap-2">
-                  <Percent size={16} /> {t('discount')}
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-bold">৳</span>
-                  <input 
-                    type="number"
-                    className="w-full p-3.5 pl-10 bg-[#1a2230] border border-white/10 rounded-xl text-white outline-none"
-                    value={formData.discount} 
-                    onChange={(e) => setFormData({...formData, discount: Number(e.target.value)})} 
-                  />
-                </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold uppercase text-slate-500">{t('discount')}</label>
+                <input type="number" className="w-full p-4 bg-[#1a2230] border border-white/10 rounded-2xl text-white" 
+                  value={formData.discount} onChange={e => setFormData({...formData, discount: Number(e.target.value)})} />
               </div>
-              <div>
-                <label className="text-sm text-slate-400 mb-2 flex items-center gap-2">
-                  <Truck size={16} /> {t('courier_cost')}
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-bold">৳</span>
-                  <input 
-                    type="number"
-                    className="w-full p-3.5 pl-10 bg-[#1a2230] border border-white/10 rounded-xl text-white outline-none"
-                    value={formData.courierCost} 
-                    onChange={(e) => setFormData({...formData, courierCost: Number(e.target.value)})} 
-                  />
-                </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold uppercase text-slate-500">{t('courier')}</label>
+                <input type="number" className="w-full p-4 bg-[#1a2230] border border-white/10 rounded-2xl text-white" 
+                  value={formData.courierCost} onChange={e => setFormData({...formData, courierCost: Number(e.target.value)})} />
+              </div>
+              <div className="flex items-end">
+                <button type="submit" className="w-full p-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black uppercase tracking-widest transition-all active:scale-95">
+                  {t('confirm')}
+                </button>
               </div>
             </div>
-
-            <button 
-              type="submit" 
-              disabled={createOrderMutation.isPending || !formData.productId}
-              className="w-full p-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 rounded-xl font-black uppercase text-white shadow-lg shadow-blue-500/20 flex items-center justify-center gap-3 transition-all active:scale-[0.98]"
-            >
-              {createOrderMutation.isPending ? (
-                <><div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>{t('saving')}</>
-              ) : (
-                <><CheckCircle size={20} />{t('confirm_order')}</>
-              )}
-            </button>
           </form>
         </div>
 
-        {/* Preview & Stats */}
-        <div className="space-y-6">
-          <div className="bg-gradient-to-br from-[#11161D] to-[#0d1219] p-6 rounded-2xl border border-white/5">
-            <h3 className="text-lg font-bold text-white mb-4 italic uppercase">{t('order_preview')}</h3>
-            <div className="space-y-4">
-              <div className="flex justify-between items-center p-3 bg-white/5 rounded-xl border border-white/5">
-                <span className="text-slate-400">{t('total_sales')}</span>
-                <span className="text-green-500 font-bold">৳ {preview.totalSell.toLocaleString()}</span>
-              </div>
-              <div className="flex justify-between items-center p-3 bg-white/5 rounded-xl border border-white/5">
-                <span className="text-slate-400">{t('total_cost')}</span>
-                <span className="text-red-400 font-bold">৳ {preview.totalCost.toLocaleString()}</span>
-              </div>
-              <div className="flex justify-between items-center p-3 bg-blue-500/10 rounded-xl border border-blue-500/20 pt-4">
-                <span className="text-white font-black uppercase text-sm tracking-widest">{t('net_profit')}</span>
-                <span className={`text-2xl font-black ${preview.netProfit >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                  ৳ {preview.netProfit.toLocaleString()}
-                </span>
-              </div>
+        {/* Live Preview Card */}
+        <div className="bg-gradient-to-br from-[#11161D] to-blue-900/10 p-8 rounded-[2.5rem] border border-white/5 space-y-6 shadow-2xl">
+          <h3 className="text-white font-black italic uppercase tracking-widest text-sm">{t('order_summary')}</h3>
+          <div className="space-y-4">
+            <div className="flex justify-between border-b border-white/5 pb-2">
+              <span className="text-slate-400 text-xs uppercase font-bold">{t('total_revenue')}</span>
+              <span className="text-white font-mono">{currency} {preview.totalSell.toLocaleString()}</span>
             </div>
-          </div>
-          
-          <div className="bg-[#11161D] p-6 rounded-2xl border border-white/5">
-            <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-              <Clock className="text-blue-500" size={20} /> {t('order_stats')}
-            </h3>
-            <div className="space-y-3">
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-slate-400">{t('total_orders')}</span>
-                <span className="text-white font-mono">{orders.length}</span>
-              </div>
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-slate-400">{t('pending_orders')}</span>
-                <span className="text-yellow-500 font-mono">{orders.filter(o => o.status === 'pending').length}</span>
+            <div className="flex justify-between border-b border-white/5 pb-2">
+              <span className="text-slate-400 text-xs uppercase font-bold">{t('product_cost')}</span>
+              <span className="text-red-500 font-mono">-{currency} {preview.totalCost.toLocaleString()}</span>
+            </div>
+            <div className="flex justify-between items-center pt-4">
+              <span className="text-blue-400 font-black uppercase italic">{t('estimated_profit')}</span>
+              <div className={`text-3xl font-black tabular-nums ${preview.netProfit >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                {currency} {preview.netProfit.toLocaleString()}
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Recent Orders Table */}
-      <div className="bg-[#11161D] rounded-2xl border border-white/5 overflow-hidden shadow-2xl">
-        <div className="p-6 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
-          <h3 className="text-lg font-bold flex items-center gap-2 text-white italic uppercase">
-            <Clock className="text-blue-500" size={20} /> {t('recent_orders')}
-          </h3>
-          <span className="px-3 py-1 bg-blue-500/10 text-blue-500 rounded-full text-xs font-bold uppercase tracking-tighter">
-            {orders.length} {t('actions')}
-          </span>
+      {/* SECTION 2: Integrated History Table */}
+      <section className="space-y-6 pt-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <h2 className="text-xl font-black text-white uppercase italic flex items-center gap-3">
+            <History size={20} className="text-blue-500" />
+            {t('order_history')}
+          </h2>
+          
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
+              <input placeholder={t('search_orders')} className="pl-10 pr-4 py-3 bg-[#11161D] border border-white/5 rounded-xl text-sm text-white outline-none w-64 focus:border-blue-500/50" 
+                value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+            </div>
+            <button className="p-3 bg-[#11161D] border border-white/5 rounded-xl text-slate-400"><Filter size={18} /></button>
+          </div>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[900px]">
-            <thead className="bg-white/5">
-              <tr className="text-[10px] uppercase text-slate-500 tracking-widest">
-                <th className="p-5 text-left font-bold">{t('customer')}</th>
-                <th className="p-5 text-left font-bold">{t('product')}</th>
-                <th className="p-5 text-left font-bold">{t('quantity')}</th>
-                <th className="p-5 text-left font-bold">{t('amount')}</th>
-                <th className="p-5 text-left font-bold">{t('profit')}</th>
-                <th className="p-5 text-left font-bold">{t('status')}</th>
-                <th className="p-5 text-left font-bold">{t('date')}</th>
-                <th className="p-5 text-left font-bold">{t('action')}</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/5">
-              {ordersLoading ? (
-                <tr>
-                  <td colSpan="8" className="p-12 text-center text-slate-500">
-                    <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500 mx-auto mb-4"></div>
-                    {t('syncing_data')}
-                  </td>
+
+        <div className="bg-[#11161D] rounded-[2.5rem] border border-white/5 overflow-hidden shadow-2xl">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="bg-white/5 text-[10px] font-bold uppercase text-slate-500 tracking-widest">
+                  <th className="p-6">#</th>
+                  <th className="p-6">{t('customer')}</th>
+                  <th className="p-6">{t('product')}</th>
+                  <th className="p-6 text-right">{t('amount')}</th>
+                  <th className="p-6 text-right">{t('profit')}</th>
+                  <th className="p-6 text-center">{t('status')}</th>
+                  <th className="p-6 text-right">{t('action')}</th>
                 </tr>
-              ) : orders.length === 0 ? (
-                <tr>
-                  <td colSpan="8" className="p-12 text-center text-slate-400 font-medium italic">{t('no_orders_found')}</td>
-                </tr>
-              ) : (
-                orders.map((order) => (
-                  <tr key={order._id} className="group hover:bg-white/[0.03] transition-colors text-sm text-white">
-                    <td className="p-5">
-                      <div className="font-black text-slate-200">{order.customerName}</div>
-                      <div className="text-[11px] text-slate-500 font-mono tracking-tighter">{order.customerPhone}</div>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {filteredOrders.map((o, idx) => (
+                  <tr key={o._id} className="group hover:bg-white/[0.02] transition-colors">
+                    <td className="p-6 text-xs text-slate-600 font-mono">{idx + 1}</td>
+                    <td className="p-6">
+                      <div className="font-bold text-slate-200">{o.customerName}</div>
+                      <div className="text-[10px] text-slate-500 font-mono">{o.customerPhone}</div>
                     </td>
-                    <td className="p-5 font-medium">{order.productName}</td>
-                    <td className="p-5"><span className="px-2 py-1 bg-slate-800 rounded font-mono text-xs">{order.quantity}</span></td>
-                    <td className="p-5 font-black text-green-400">
-                      ৳ {((order.sellingPrice - order.discount) * order.quantity).toLocaleString()}
+                    <td className="p-6">
+                      <div className="text-sm text-slate-300">{o.productName}</div>
+                      <div className="text-[10px] text-blue-500 font-bold">QTY: {o.quantity}</div>
                     </td>
-                    <td className="p-5 font-bold">
-                      <span className={order.netProfit >= 0 ? 'text-green-500' : 'text-red-500'}>
-                        ৳ {order.netProfit?.toLocaleString()}
+                    <td className="p-6 text-right font-mono text-white">
+                      {currency} {((o.sellingPrice - o.discount) * o.quantity).toLocaleString()}
+                    </td>
+                    <td className={`p-6 text-right font-bold font-mono ${o.netProfit >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                      {currency} {o.netProfit?.toLocaleString()}
+                    </td>
+                    <td className="p-6 text-center">
+                      <span className="px-3 py-1 bg-blue-500/10 text-blue-500 rounded-full text-[9px] font-black uppercase">
+                        {t(o.status || 'pending')}
                       </span>
                     </td>
-                    <td className="p-5">
-                      <span className="px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                        {t(order.status?.toLowerCase() || 'pending')}
-                      </span>
-                    </td>
-                    <td className="p-5 text-xs text-slate-500 font-mono">{new Date(order.createdAt).toLocaleDateString()}</td>
-                    <td className="p-5">
-                      <button onClick={() => confirmDeleteOrder(order._id)} className="p-2.5 bg-red-500/5 text-slate-500 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all active:scale-90">
+                    <td className="p-6 text-right">
+                      <button onClick={() => deleteMutation.mutate(o._id)} className="p-2 text-slate-500 hover:text-red-500 transition-colors">
                         <Trash2 size={16} />
                       </button>
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      </section>
     </div>
   );
 }
