@@ -23,7 +23,6 @@ export default function Sidebar() {
     { key: 'finance_control', path: '/finance', icon: Wallet },
     { key: 'courier_management', path: '/courier', icon: Truck },
     { key: 'marketing_center', path: '/marketing', icon: Megaphone },
-    { key: 'business_analytics', path: '/reports', icon: BarChart },
     { key: 'settings', path: '/settings', icon: Settings },
   ];
 
