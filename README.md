@@ -1,67 +1,88 @@
-# Xeetrix - The Ultimate E-commerce Management & Automation OS
+# 🚀 Xeetrix: The Ultimate Business Control Room (SaaS)
 
-**Xeetrix** is a high-performance, Next.js-based enterprise solution designed to streamline e-commerce operations. It bridges the gap between complex business data and seamless automation, allowing entrepreneurs to manage their inventory, orders, and finances with Islamic business values and modern efficiency.
-
----
-
-## 🚀 Vision
-To empower e-commerce businesses by automating repetitive tasks, ensuring data accuracy, and providing a bird's-eye view of business health—all within a single, secure dashboard.
-
-## 🛠️ Tech Stack
-- **Framework:** [Next.js](https://nextjs.org/) (App Router)
-- **Styling:** [Tailwind CSS](https://tailwindcss.com/)
-- **Database:** [Prisma](https://www.prisma.io/) with PostgreSQL/MongoDB
-- **Automation:** [Make.com](https://www.make.com/) Integration
-- **Authentication:** [Clerk](https://clerk.com/) / NextAuth.js
-- **Deployment:** [Vercel](https://vercel.com/)
+**Xeetrix** is a 360-degree e-commerce operating system designed to move business owners from "Management Chaos" to "Data-Driven Control." It's the central command center for sales, inventory, accounting, marketing, and logistics.
 
 ---
 
-## ✨ Key Features
-
-### 📊 Intelligent Dashboard
-- **Real-time Analytics:** Track daily sales, profit margins, and expenses at a glance.
-- **Inventory Management:** Smart stock tracking with "Low Stock" alerts.
-
-### 🤖 Automation Engine (Powered by Make.com)
-- **Auto-Invoicing:** Generates and sends PDF invoices to customers via Email/WhatsApp upon order confirmation.
-- **Order Sync:** Seamlessly syncs data between the website, Google Sheets, and Notion.
-- **Notification System:** Automatic SMS/Email updates for order status changes.
-
-### ⚖️ Ethical Finance Module
-- **Profit/Loss Tracker:** Calculates net profit by factoring in ad costs, shipping, and product sourcing.
-- **Islamic Business Compliance:** Tools to manage business transparently and fairly.
+## 🎯 The Vision: "Total Business Transparency"
+Xeetrix eliminates the need for switching between multiple apps. From tracking a single Facebook message to calculating the monthly ROAS (Return on Ad Spend), everything happens inside the Xeetrix Control Room.
 
 ---
 
-## 📁 xeetrix-saas/
+## 📂 Detailed Project Structure (Directory Tree)
+
+```text
+Xeetrix/
+├── app/
+│   ├── (auth)/                 # Authentication (Login, Register, Reset Password)
+│   ├── (dashboard)/            # Main Business Interface
+│   │   ├── analytics/          # Business Intelligence & Reports
+│   │   ├── inventory/          # Stock Management & Adjustment Pages
+│   │   ├── ledger/             # Searchable Transaction History
+│   │   ├── marketing/          # Ad-spend Tracking & Content Planner
+│   │   ├── orders/             # Unified POS (Online/Offline) Dashboard
+│   │   └── settings/           # Business Profile & Currency Settings
+│   ├── api/                    # Backend logic & API Endpoints
+│   │   ├── inventory/          # Product CRUD & Stock Update API
+│   │   ├── orders/             # Transaction & Invoice Processing
+│   │   ├── ledger/             # Financial History Retrieval
+│   │   └── marketing/          # Ad-data & ROAS calculation API
+│   ├── globals.css             # Tailwind Global Styles
+│   └── layout.js               # Root Layout with Theme & Providers
+├── components/
+│   ├── pos/                    # POS Components (Cart, Customer, Payments)
+│   ├── inventory/              # Product Forms, Stock Alert Modals
+│   ├── marketing/              # Ad Spend Charts, Marketing Cards
+│   ├── shared/                 # Sidebar, Navbar, Page Headers
+│   └── ui/                     # Shadcn / Reusable UI Primitives
+├── context/
+│   ├── AppContext.js           # Global State (Business Config, User Session)
+│   └── OrderContext.js         # POS Specific State (Cart logic)
+├── hooks/                      # Custom React Hooks (useInventory, useOrders)
+├── lib/
+│   ├── db.js                   # Prisma/Mongoose Database Connection
+│   ├── utils.js                # Formatter (Currency, Date, Calculations)
+│   └── validations.js          # Zod/Joi Schemas for Data Integrity
 ├── public/
-│   └── locales/                # i18n Dictionary (121 Keys synchronized)
-│       ├── en/common.json      # English (Master Locale)
-│       ├── bn/common.json      # Bengali
-│       ├── ar/common.json      # Arabic (RTL)
-│       ├── ur/common.json      # Urdu (RTL)
-│       ├── ps/common.json      # Pashto (RTL)
-│       ├── hi/common.json      # Hindi
-│       ├── es/common.json      # Spanish
-│       ├── ru/common.json      # Russian
-│       ├── zh/common.json      # Chinese
-│       └── ja/common.json      # Japanese
-├── src/
-│   ├── app/                    # Next.js App Router
-│   │   ├── dashboard/          # Analytics Overview Page
-│   │   ├── api/                # API Routes (e.g., /api/dashboard)
-│   │   ├── globals.css         # Global Styling & Tailwind Imports
-│   │   └── layout.js           # Root Layout with Context & i18n Providers
-│   ├── components/
-│   │   ├── Sidebar.jsx         # Multilingual Navigation Sidebar
-│   │   └── ...                 # Other UI Components
-│   ├── context/
-│   │   └── AppContext.js       # Global State Management (Lang, RTL, Theme)
-│   ├── lib/
-│   │   └── i18n.js             # i18next Client-side Configuration
-│   └── utils/                  # Helper functions
-├── setup-locales.js            # Node script for maintaining 121 key parity
-├── package.json                # Project Dependencies (Next, TanStack Query, i18next)
-├── tailwind.config.js          # Custom Design Tokens
-└── README.md                   # Enterprise Documentation
+│   ├── branding/               # Logos & Favicons
+│   └── icons/                  # Custom SVG Icons
+├── .env                        # Environment Variables (Secrets)
+├── package.json                # Project Dependencies & Scripts
+└── README.md                   # Project Documentation
+✨ Core Modules & MVP Features
+1. 🛒 Unified POS & Hybrid Order Engine
+Hybrid Modes: Instant toggle between Online Order and Offline Sell.
+
+Dynamic Invoicing: Real-time PDF generation and PNG image export for social sharing.
+
+Order Tracking: Track orders from "Pending" to "Delivered" with payment reconciliation.
+
+2. 💰 Live Financial Intelligence (Accounting)
+Net Profit Engine: Automatic calculation of profit after COGS, discounts, and courier fees.
+
+Receivable Ledger: Clear view of current cash-in-hand vs. customer dues.
+
+Decision Support: Data-driven insights on daily and monthly growth.
+
+3. 📦 Smart Inventory & Stock Control
+Auto-Sync: Real-time stock deduction upon sale and addition upon returns.
+
+Valuation Tracking: Total asset value calculation based on cost prices.
+
+Alert System: Low stock notifications to prevent missed sales.
+
+4. 📈 Marketing & Ad-Spend Control (Future Ready)
+ROAS Tracking: Input daily Facebook/Google ad costs to see exact profit ratios.
+
+Content Library: Manage product media and captions for social media posting.
+
+🛠 Tech Stack
+Framework: Next.js 14+ (App Router)
+
+Database: MongoDB / PostgreSQL (via Prisma)
+
+State: TanStack Query (React Query) & Context API
+
+Styling: Tailwind CSS
+
+Utilities: html-to-image, Lucide Icons, Framer Motion
