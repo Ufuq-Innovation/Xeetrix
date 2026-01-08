@@ -44,7 +44,7 @@ export default function Sidebar() {
           w-72 h-screen flex flex-col p-6 md:p-8 space-y-10 
           transition-transform duration-500 ease-in-out
           bg-white dark:bg-[#11161D] border-slate-200 dark:border-white/5
-          ${/* RTL সাপোর্ট হ্যান্ডেল করা হয়েছে */
+          ${/* RTL Support Class */
             lang === 'ar' || lang === 'ur' || lang === 'ps' 
             ? (isOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0')
             : (isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0')
