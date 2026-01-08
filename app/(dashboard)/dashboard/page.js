@@ -37,6 +37,7 @@ export default function UnifiedDashboard() {
   const [selectedProduct, setSelectedProduct] = useState({ id: '', name: '', qty: 1, stock: 0, price: 0, cost: 0 });
   const [customerInfo, setCustomerInfo] = useState({ name: '', phone: '', address: '' });
   const [expenses, setExpenses] = useState({ discount: '', courier: '' });
+  const [searchQuery, setSearchQuery] = useState(""); // <-- এই লাইনটা এড করেছি
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -143,6 +144,7 @@ export default function UnifiedDashboard() {
     setCustomerInfo({ name: '', phone: '', address: '' });
     setExpenses({ discount: '', courier: '' });
     setPaidAmount("");
+    setSearchQuery(""); // <-- এই লাইনটা এড করেছি
     setOrderId(generateId(transactionType));
   };
 
@@ -585,6 +587,35 @@ export default function UnifiedDashboard() {
                       </div>
                     </div>
                   </>
+                )}
+              </div>
+
+              {/* Product Search - এই অংশে searchQuery ব্যবহার করা হচ্ছে */}
+              <div className="relative group">
+                <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-blue-500 transition-colors" size={20} />
+                <input 
+                  className="w-full px-16 py-6 bg-[#11161D] border border-white/5 rounded-3xl text-sm font-bold outline-none focus:border-blue-500/50 transition-all" 
+                  placeholder={t('search_products_to_add')}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+                
+                {searchQuery && (
+                  <div className="absolute top-full left-0 w-full bg-[#1a2230] mt-4 rounded-3xl border border-white/10 overflow-hidden z-50 shadow-2xl p-2 animate-in fade-in slide-in-from-top-2">
+                    {filteredProducts.map(p => (
+                      <button 
+                        key={p._id} 
+                        onClick={() => addToCart(p)} 
+                        className="w-full flex items-center justify-between p-5 hover:bg-blue-600 rounded-2xl transition-all group"
+                      >
+                        <div>
+                          <p className="font-black text-sm uppercase text-white">{p.name}</p>
+                          <p className="text-[10px] font-bold opacity-50 uppercase tracking-widest">Stock: {p.stock}</p>
+                        </div>
+                        <span className="font-black text-blue-500 group-hover:text-white">{currency}{p.sellingPrice}</span>
+                      </button>
+                    ))}
+                  </div>
                 )}
               </div>
 
