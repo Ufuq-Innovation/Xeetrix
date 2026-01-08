@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { useApp } from "@/context/AppContext";
 import { 
   LayoutDashboard, ShoppingCart, Wallet, Package, 
-  Truck, Megaphone, Settings, Menu, X, PlusCircle, CircleDot
+  Truck, Megaphone, Settings, Menu, X, PlusCircle, CircleDot, Users
 } from 'lucide-react';
 
 export default function Sidebar() {
@@ -17,13 +17,14 @@ export default function Sidebar() {
   const { lang, theme } = useApp();
 
   const menuItems = [
-    { key: 'dashboard', path: '/dashboard', icon: LayoutDashboard },
-    { key: 'orders', path: '/orders', icon: PlusCircle },
-    { key: 'inventory', path: '/inventory', icon: Package },
-    { key: 'finance', path: '/finance', icon: Wallet },
-    { key: 'courier', path: '/courier', icon: Truck },
-    { key: 'marketing', path: '/marketing', icon: Megaphone },
-    { key: 'settings', path: '/settings', icon: Settings },
+    { key: 'dashboard', path: '/dashboard/dashboard', icon: LayoutDashboard },
+    { key: 'orders', path: '/dashboard/orders', icon: PlusCircle },
+    { key: 'inventory', path: '/dashboard/inventory', icon: Package },
+    { key: 'finance', path: '/dashboard/finance', icon: Wallet },
+    { key: 'customers', path: '/dashboard/customers', icon: Users },
+    { key: 'marketing', path: '/dashboard/marketing', icon: Megaphone },
+    { key: 'courier', path: '/dashboard/courier', icon: Truck },
+    { key: 'settings', path: '/dashboard/settings', icon: Settings },
   ];
 
   const isRTL = ['ar', 'ur', 'ps'].includes(lang);
