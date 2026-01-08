@@ -5,9 +5,8 @@ import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { useApp } from "@/context/AppContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import html2canvas from "html2canvas";
 import { 
-  X, Plus, Search, Trash2, Globe, Store, Printer, Download, Eye
+  X, Plus, Search, Trash2, Eye, ShoppingCart, User, MapPin, CreditCard
 } from "lucide-react";
 
 export default function UnifiedOrderPage() {
@@ -63,25 +62,20 @@ export default function UnifiedOrderPage() {
     }
   });
 
-  // Suggestions
   const customerSuggestions = useMemo(() => {
     if (!customerInfo.phone) return [];
     return orders.filter(o => o.customerPhone.includes(customerInfo.phone)).slice(0, 5);
   }, [customerInfo.phone, orders]);
 
-  // --- Calculations ---
   const summary = useMemo(() => {
     const subTotal = cart.reduce((acc, i) => acc + (i.price * i.qty), 0);
     const totalCost = cart.reduce((acc, i) => acc + (i.cost * i.qty), 0);
     const disc = Number(expenses.discount) || 0;
     const cour = transactionType === "online" ? (Number(expenses.courier) || 0) : 0;
     const totalSell = subTotal - disc + cour;
-    
-    // Offline = Fully Paid, Online = Based on Status
     const currentPaid = transactionType === "offline" ? totalSell : 
                         (paymentStatus === "Paid" ? totalSell : (paymentStatus === "Partial" ? (Number(paidAmount) || 0) : 0));
     const dueAmount = totalSell - currentPaid;
-
     return { subTotal, totalSell, netProfit: (subTotal - disc) - totalCost, dueAmount, currentPaid };
   }, [cart, expenses, transactionType, paymentStatus, paidAmount]);
 
@@ -89,8 +83,7 @@ export default function UnifiedOrderPage() {
     return orders.filter(order => {
       const matchSearch = (order.customerName || '').toLowerCase().includes(filters.search.toLowerCase()) || (order.orderId || '').includes(filters.search);
       const matchType = filters.type === 'all' || order.transactionType === filters.type;
-      const matchStatus = filters.status === 'all' || order.paymentStatus === filters.status;
-      return matchSearch && matchType && matchStatus;
+      return matchSearch && matchType;
     });
   }, [orders, filters]);
 
@@ -127,7 +120,6 @@ export default function UnifiedOrderPage() {
       <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
         <div className="xl:col-span-3 space-y-6">
           <div className="bg-[#11161D] rounded-[2.5rem] border border-white/5 p-6 md:p-8">
-            {/* Type Switcher */}
             <div className="flex justify-between items-center mb-8">
                <div className="flex p-1 bg-black/20 rounded-2xl border border-white/5">
                 <button onClick={() => setTransactionType("online")} className={`px-6 py-2 rounded-xl text-xs font-black transition-all ${transactionType === 'online' ? 'bg-blue-600 text-white' : 'text-slate-500'}`}>ONLINE</button>
@@ -136,40 +128,39 @@ export default function UnifiedOrderPage() {
               <div className="text-right font-mono text-sm font-black text-blue-500">{orderId}</div>
             </div>
 
-            {/* Customer Section */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="relative">
-                <input className="w-full px-5 py-4 bg-[#1a2230] border border-white/10 rounded-2xl text-sm font-bold outline-none" placeholder="Phone Number" value={customerInfo.phone} onChange={e => { setCustomerInfo({...customerInfo, phone: e.target.value}); setShowCustSuggestions(true); }} />
+                <input className="w-full px-5 py-4 bg-[#1a2230] border border-white/10 rounded-2xl text-sm font-bold outline-none focus:border-blue-500/50" placeholder="Phone Number" value={customerInfo.phone} onChange={e => { setCustomerInfo({...customerInfo, phone: e.target.value}); setShowCustSuggestions(true); }} />
                 {showCustSuggestions && customerSuggestions.length > 0 && (
-                  <div className="absolute z-50 w-full mt-2 bg-[#1a2230] border border-white/10 rounded-2xl shadow-2xl">
+                  <div className="absolute z-50 w-full mt-2 bg-[#1a2230] border border-white/10 rounded-2xl shadow-2xl overflow-hidden">
                     {customerSuggestions.map((c, i) => (
                       <div key={i} onClick={() => { setCustomerInfo({ name: c.customerName, phone: c.customerPhone, address: c.customerAddress }); setShowCustSuggestions(false); }} className="px-5 py-3 hover:bg-blue-600 cursor-pointer border-b border-white/5 last:border-0 uppercase text-[10px] font-black">{c.customerName} - {c.customerPhone}</div>
                     ))}
                   </div>
                 )}
               </div>
-              <input className="w-full px-5 py-4 bg-[#1a2230] border border-white/10 rounded-2xl text-sm font-bold outline-none" placeholder="Customer Name" value={customerInfo.name} onChange={e => setCustomerInfo({...customerInfo, name: e.target.value})} />
+              <input className="w-full px-5 py-4 bg-[#1a2230] border border-white/10 rounded-2xl text-sm font-bold outline-none focus:border-blue-500/50" placeholder="Customer Name" value={customerInfo.name} onChange={e => setCustomerInfo({...customerInfo, name: e.target.value})} />
               
               {transactionType === "online" && (
                 <>
                   <textarea className="w-full md:col-span-2 px-5 py-4 bg-[#1a2230] border border-white/10 rounded-2xl text-sm font-bold outline-none min-h-[80px]" placeholder="Full Delivery Address" value={customerInfo.address} onChange={e => setCustomerInfo({...customerInfo, address: e.target.value})} />
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-500 uppercase ml-1">Order Source</label>
-                    <select value={orderSource} onChange={e => setOrderSource(e.target.value)} className="w-full px-5 py-4 bg-[#1a2230] border border-white/10 rounded-2xl text-sm font-bold outline-none">
-                      <option value="Facebook">Facebook</option>
-                      <option value="WhatsApp">WhatsApp</option>
-                    </select>
+                  <div className="grid grid-cols-2 gap-4 md:col-span-2">
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-black text-slate-500 uppercase ml-1 tracking-widest">Source</label>
+                        <select value={orderSource} onChange={e => setOrderSource(e.target.value)} className="w-full px-5 py-4 bg-[#1a2230] border border-white/10 rounded-2xl text-sm font-bold outline-none">
+                        <option value="Facebook">Facebook</option>
+                        <option value="WhatsApp">WhatsApp</option>
+                        </select>
+                    </div>
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-black text-slate-500 uppercase ml-1 tracking-widest">Payment Status</label>
+                        <select value={paymentStatus} onChange={e => setPaymentStatus(e.target.value)} className="w-full px-5 py-4 bg-[#1a2230] border border-white/10 rounded-2xl text-sm font-bold outline-none">
+                        <option value="COD">COD</option>
+                        <option value="Paid">Fully Paid</option>
+                        <option value="Partial">Partial Payment</option>
+                        </select>
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-500 uppercase ml-1">Payment Status</label>
-                    <select value={paymentStatus} onChange={e => setPaymentStatus(e.target.value)} className="w-full px-5 py-4 bg-[#1a2230] border border-white/10 rounded-2xl text-sm font-bold outline-none">
-                      <option value="COD">COD</option>
-                      <option value="Paid">Fully Paid</option>
-                      <option value="Partial">Partial Payment</option>
-                    </select>
-                  </div>
-                  
-                  {/* Partial Input Logic - MUST BE HERE */}
                   {paymentStatus === "Partial" && (
                     <div className="md:col-span-2">
                        <label className="text-[10px] font-black text-yellow-500 uppercase ml-1">Paid / Advance Amount</label>
@@ -180,15 +171,14 @@ export default function UnifiedOrderPage() {
               )}
             </div>
 
-            {/* Expenses */}
             <div className="grid grid-cols-2 gap-4 mt-6">
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-red-400 uppercase ml-1">Discount</label>
+                <label className="text-[10px] font-black text-red-400 uppercase ml-1 tracking-widest">Discount</label>
                 <input type="number" className="w-full px-5 py-4 bg-[#1a2230] border border-red-500/10 rounded-2xl text-sm font-black" placeholder="0" value={expenses.discount} onChange={e => setExpenses({...expenses, discount: e.target.value})} />
               </div>
               {transactionType === "online" && (
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-blue-400 uppercase ml-1">Courier</label>
+                  <label className="text-[10px] font-black text-blue-400 uppercase ml-1 tracking-widest">Courier</label>
                   <input type="number" className="w-full px-5 py-4 bg-[#1a2230] border border-blue-500/10 rounded-2xl text-sm font-black" placeholder="0" value={expenses.courier} onChange={e => setExpenses({...expenses, courier: e.target.value})} />
                 </div>
               )}
@@ -205,14 +195,14 @@ export default function UnifiedOrderPage() {
                   {inventory.map(item => <option key={item._id} value={item._id} disabled={item.stock <= 0}>{item.name} ({item.stock})</option>)}
                 </select>
                 <input type="number" className="w-24 px-5 py-4 bg-[#1a2230] border border-white/10 rounded-2xl text-center font-black outline-none" value={selectedProduct.qty} onChange={e => setSelectedProduct({...selectedProduct, qty: Number(e.target.value)})} />
-                <button onClick={() => { if (!selectedProduct.id) return; setCart([...cart, {...selectedProduct}]); setSelectedProduct({ id: '', name: '', qty: 1, stock: 0, price: 0, cost: 0 }); }} className="px-10 bg-blue-600 rounded-2xl text-white font-black"><Plus /></button>
+                <button onClick={() => { if (!selectedProduct.id) return; setCart([...cart, {...selectedProduct}]); setSelectedProduct({ id: '', name: '', qty: 1, stock: 0, price: 0, cost: 0 }); }} className="px-10 bg-blue-600 rounded-2xl text-white font-black hover:bg-blue-700 transition-all active:scale-95"><Plus /></button>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-40 overflow-y-auto">
                 {cart.map((item, i) => (
                   <div key={i} className="flex justify-between items-center bg-[#1a2230] p-4 rounded-xl border border-white/5">
                     <span className="text-xs font-black uppercase">{item.name} x {item.qty}</span>
-                    <button onClick={() => setCart(cart.filter((_, idx) => idx !== i))} className="text-red-500"><Trash2 size={16}/></button>
+                    <button onClick={() => setCart(cart.filter((_, idx) => idx !== i))} className="text-red-500 hover:bg-red-500/10 p-2 rounded-lg transition-all"><Trash2 size={16}/></button>
                   </div>
                 ))}
               </div>
@@ -232,83 +222,20 @@ export default function UnifiedOrderPage() {
           <div className="bg-[#11161D] p-8 rounded-[2.5rem] border border-white/5 shadow-2xl sticky top-6 space-y-6">
             <h3 className="text-[10px] font-black text-blue-500 uppercase tracking-widest italic border-l-4 border-blue-500 pl-4">Live Invoice</h3>
             <div className="space-y-3">
-              <div className="flex justify-between text-xs font-bold text-slate-500"><span>Subtotal</span><span>{currency}{summary.subTotal}</span></div>
-              <div className="flex justify-between text-xs font-bold text-red-400"><span>Discount</span><span>-{currency}{expenses.discount || 0}</span></div>
-              {transactionType === "online" && <div className="flex justify-between text-xs font-bold text-blue-500"><span>Courier</span><span>+{currency}{expenses.courier || 0}</span></div>}
+              <div className="flex justify-between text-xs font-bold text-slate-500"><span>Subtotal</span><span>{currency}{summary.subTotal.toLocaleString()}</span></div>
+              <div className="flex justify-between text-xs font-bold text-red-400"><span>Discount</span><span>-{currency}{(Number(expenses.discount) || 0).toLocaleString()}</span></div>
+              {transactionType === "online" && <div className="flex justify-between text-xs font-bold text-blue-500"><span>Courier</span><span>+{currency}{(Number(expenses.courier) || 0).toLocaleString()}</span></div>}
               <div className="h-px bg-white/5 my-2"></div>
               <p className="text-[10px] font-black text-slate-500 uppercase">Total Payable</p>
-              <p className="text-4xl font-black italic text-white font-mono">{currency}{summary.totalSell}</p>
+              <p className="text-4xl font-black italic text-white font-mono">{currency}{summary.totalSell.toLocaleString()}</p>
               <div className="pt-4 flex gap-4 border-t border-white/5">
-                 <div className="flex-1"><p className="text-[9px] font-black text-emerald-500 uppercase">Paid</p><p className="text-lg font-black text-emerald-500">{currency}{summary.currentPaid}</p></div>
-                 <div className="flex-1 text-right"><p className="text-[9px] font-black text-red-500 uppercase">Due</p><p className="text-lg font-black text-red-500">{currency}{summary.dueAmount}</p></div>
+                 <div className="flex-1"><p className="text-[9px] font-black text-emerald-500 uppercase">Paid</p><p className="text-lg font-black text-emerald-500">{currency}{summary.currentPaid.toLocaleString()}</p></div>
+                 <div className="flex-1 text-right"><p className="text-[9px] font-black text-red-500 uppercase">Due</p><p className="text-lg font-black text-red-500">{currency}{summary.dueAmount.toLocaleString()}</p></div>
               </div>
             </div>
           </div>
         </div>
       </div>
-
-      {/* History Ledger */}
-      <div className="bg-[#11161D] rounded-[2.5rem] border border-white/5 overflow-hidden shadow-2xl">
-        <div className="p-8 border-b border-white/5 flex flex-col md:flex-row justify-between items-center gap-4">
-          <h2 className="text-lg font-black uppercase italic">Order History</h2>
-          <div className="flex flex-wrap gap-4">
-            <input className="px-5 py-2 bg-black/20 border border-white/5 rounded-xl text-xs outline-none" placeholder="Search ID/Name..." value={filters.search} onChange={e => setFilters({...filters, search: e.target.value})} />
-            <select className="px-4 py-2 bg-black/20 border border-white/5 rounded-xl text-xs font-black uppercase outline-none" onChange={e => setFilters({...filters, type: e.target.value})}>
-              <option value="all">All Type</option>
-              <option value="online">Online</option>
-              <option value="offline">Offline</option>
-            </select>
-          </div>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left min-w-[1000px]">
-            <thead className="bg-black/20 text-[10px] text-slate-500 font-black uppercase">
-              <tr><th className="px-6 py-4">ID & Date</th><th className="px-6 py-4">Customer</th><th className="px-6 py-4">Type</th><th className="px-6 py-4">Status</th><th className="px-6 py-4 text-right">Total Sell</th><th className="px-6 py-4 text-center">Action</th></tr>
-            </thead>
-            <tbody className="divide-y divide-white/5 text-xs">
-              {filteredOrders.map((order, i) => (
-                <tr key={i} className="hover:bg-white/[0.02]">
-                  <td className="px-6 py-4 font-mono text-blue-500">{order.orderId}</td>
-                  <td className="px-6 py-4 font-bold">{order.customerName}<br/><span className="text-[10px] text-slate-500">{order.customerPhone}</span></td>
-                  <td className="px-6 py-4 uppercase font-black text-[9px]">{order.transactionType}</td>
-                  <td className="px-6 py-4 uppercase font-black text-[9px]">{order.paymentStatus}</td>
-                  <td className="px-6 py-4 text-right font-black">{currency}{order.totalSell}</td>
-                  <td className="px-6 py-4 text-center"><button className="p-2"><Eye size={14}/></button></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Receipt Modal */}
-      {showReceipt && lastSavedOrder && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
-          <div className="bg-white rounded-[2rem] w-full max-w-sm overflow-hidden text-slate-900">
-            <div id="receipt-content" className="p-8">
-              <div className="text-center border-b-2 border-dashed border-slate-200 pb-4 mb-6 uppercase">
-                <h2 className="text-xl font-black italic">Control Room</h2>
-                <p className="text-[9px] font-bold text-slate-400">{lastSavedOrder.orderId}</p>
-              </div>
-              <div className="space-y-1 text-[10px] mb-6 uppercase font-black">
-                <div className="flex justify-between"><span>Customer:</span><span>{lastSavedOrder.customerInfo.name}</span></div>
-                <div className="flex justify-between"><span>Phone:</span><span>{lastSavedOrder.customerInfo.phone}</span></div>
-              </div>
-              <div className="space-y-2 mb-6 bg-slate-50 p-6 rounded-2xl">
-                 <div className="flex justify-between text-[11px] font-bold"><span>Subtotal</span><span>{currency}{lastSavedOrder.summary.subTotal}</span></div>
-                 <div className="flex justify-between text-[11px] font-bold text-red-500"><span>Discount (-)</span><span>{currency}{lastSavedOrder.expenses.discount || 0}</span></div>
-                 {lastSavedOrder.transactionType === "online" && <div className="flex justify-between text-[11px] font-bold text-blue-500"><span>Courier (+)</span><span>{currency}{lastSavedOrder.expenses.courier || 0}</span></div>}
-                 <div className="border-t border-slate-200 pt-2 flex justify-between font-black text-lg"><span>Total</span><span>{currency}{lastSavedOrder.summary.totalSell}</span></div>
-                 <div className="flex justify-between text-xs font-black text-emerald-600 mt-2"><span>Paid Amount</span><span>{currency}{lastSavedOrder.summary.currentPaid}</span></div>
-              </div>
-            </div>
-            <div className="p-4 bg-slate-100 flex gap-2">
-               <button onClick={() => window.print()} className="flex-1 bg-slate-900 text-white py-4 rounded-xl font-black text-[10px] uppercase">Print Receipt</button>
-               <button onClick={() => setShowReceipt(false)} className="px-6 bg-white border border-slate-200 rounded-xl font-black uppercase text-[10px]">Close</button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
