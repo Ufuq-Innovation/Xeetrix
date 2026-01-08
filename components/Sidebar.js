@@ -16,15 +16,16 @@ export default function Sidebar() {
   const { t } = useTranslation(); 
   const { lang, theme } = useApp();
 
+  // 🟢 CORRECT PATHS: Single "dashboard" in URL
   const menuItems = [
-    { key: 'dashboard', path: '/dashboard/dashboard', icon: LayoutDashboard },
-    { key: 'orders', path: '/dashboard/orders', icon: PlusCircle },
-    { key: 'inventory', path: '/dashboard/inventory', icon: Package },
-    { key: 'finance', path: '/dashboard/finance', icon: Wallet },
-    { key: 'customers', path: '/dashboard/customers', icon: Users },
-    { key: 'marketing', path: '/dashboard/marketing', icon: Megaphone },
-    { key: 'courier', path: '/dashboard/courier', icon: Truck },
-    { key: 'settings', path: '/dashboard/settings', icon: Settings },
+    { key: 'dashboard', path: '/dashboard', icon: LayoutDashboard },
+    { key: 'orders', path: '/orders', icon: PlusCircle },
+    { key: 'inventory', path: '/inventory', icon: Package },
+    { key: 'finance', path: '/finance', icon: Wallet },
+    { key: 'customers', path: '/customers', icon: Users },
+    { key: 'marketing', path: '/marketing', icon: Megaphone },
+    { key: 'courier', path: '/courier', icon: Truck },
+    { key: 'settings', path: '/settings', icon: Settings },
   ];
 
   const isRTL = ['ar', 'ur', 'ps'].includes(lang);
@@ -82,7 +83,8 @@ export default function Sidebar() {
           <nav className="space-y-1.5">
             {menuItems.map((item) => {
               const Icon = item.icon;
-              const isActive = pathname === item.path;
+              // 🟢 CORRECT: Check full pathname match
+              const isActive = pathname === item.path || pathname.startsWith(`${item.path}/`);
               
               return (
                 <Link 
