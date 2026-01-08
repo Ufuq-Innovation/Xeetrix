@@ -1,29 +1,42 @@
 "use client";
 
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { useApp } from "@/context/AppContext";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toPng } from 'html-to-image';
 import { 
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
   AreaChart, Area, PieChart, Pie, Cell 
 } from 'recharts';
 import { 
   X, Plus, Trash2, TrendingUp, Search, 
-  PieChart as PieIcon, Activity, ShoppingBag, CreditCard, ArrowUpRight
+  PieChart as PieIcon, Activity, ShoppingBag, CreditCard, ArrowUpRight,
+  Globe, Store, Printer, Download, Eye, Truck, CheckCircle2, Clock, Image as ImageIcon, Wallet
 } from "lucide-react";
 
 export default function UnifiedDashboard() {
-  const { lang, currency: ctxCurrency } = useApp();
+  const { theme, lang, currency: ctxCurrency } = useApp();
   const { t } = useTranslation("common");
+  const queryClient = useQueryClient();
+  const receiptRef = useRef(null);
+  
   const [mounted, setMounted] = useState(false);
   const [showOrderDrawer, setShowOrderDrawer] = useState(false);
   
-  // Cart & Product Search States
-  const [cart, setCart] = useState([]);
-  const [searchQuery, setSearchQuery] = useState("");
+  // POS Drawer States (from order page)
   const [transactionType, setTransactionType] = useState("online");
+  const [paymentStatus, setPaymentStatus] = useState("COD");
+  const [orderSource, setOrderSource] = useState("Facebook");
+  const [paidAmount, setPaidAmount] = useState("");
+  const [showReceipt, setShowReceipt] = useState(false);
+  const [lastSavedOrder, setLastSavedOrder] = useState(null);
+  const [orderId, setOrderId] = useState("");
+  const [cart, setCart] = useState([]);
+  const [selectedProduct, setSelectedProduct] = useState({ id: '', name: '', qty: 1, stock: 0, price: 0, cost: 0 });
+  const [customerInfo, setCustomerInfo] = useState({ name: '', phone: '', address: '' });
+  const [expenses, setExpenses] = useState({ discount: '', courier: '' });
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -40,7 +53,16 @@ export default function UnifiedDashboard() {
     queryFn: () => fetch('/api/inventory').then(res => res.json()).then(d => d.products || [])
   });
 
-  // --- Safe Stats Logic (Error handling fix) ---
+  const { data: inventory = [] } = useQuery({
+    queryKey: ['inventory'],
+    queryFn: async () => {
+      const res = await fetch('/api/inventory');
+      const data = await res.json();
+      return data.success ? data.products : [];
+    }
+  });
+
+  // --- Safe Stats Logic ---
   const stats = useMemo(() => ({
     totalSales: dashboardData?.summary?.totalSales ?? 0,
     netProfit: dashboardData?.summary?.netProfit ?? 0,
@@ -48,7 +70,82 @@ export default function UnifiedDashboard() {
     totalExpense: dashboardData?.summary?.totalExpense ?? 0,
   }), [dashboardData]);
 
-  // --- Search & Cart Logic ---
+  // --- POS Drawer Functions ---
+  const generateId = (type) => {
+    const prefix = type === "online" ? "ORD" : "SL";
+    return `${prefix}-${new Date().getFullYear()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
+  };
+
+  useEffect(() => {
+    if (showOrderDrawer) {
+      setOrderId(generateId(transactionType));
+      if (transactionType === "offline") {
+        setPaymentStatus("Paid");
+      } else {
+        setPaymentStatus("COD");
+      }
+    }
+  }, [showOrderDrawer, transactionType]);
+
+  const summary = useMemo(() => {
+    const subTotal = cart.reduce((acc, i) => acc + (i.price * i.qty), 0);
+    const totalCost = cart.reduce((acc, i) => acc + (i.cost * i.qty), 0);
+    const disc = Number(expenses.discount) || 0;
+    const cour = transactionType === "online" ? (Number(expenses.courier) || 0) : 0;
+    const totalSell = subTotal - disc + cour;
+    const currentPaid = transactionType === "offline" ? totalSell : 
+                        (paymentStatus === "Paid" ? totalSell : (paymentStatus === "Partial" ? (Number(paidAmount) || 0) : 0));
+    const isConfirmedSell = (transactionType === "offline") || (paymentStatus === "Paid");
+    const netProfit = isConfirmedSell ? ((subTotal - disc) - totalCost) : 0;
+
+    return { 
+      subTotal, totalSell, netProfit, 
+      dueAmount: (totalSell - currentPaid), 
+      currentPaid, isConfirmedSell 
+    };
+  }, [cart, expenses, transactionType, paymentStatus, paidAmount]);
+
+  const downloadReceiptImage = async () => {
+    if (receiptRef.current === null) return;
+    try {
+      const dataUrl = await toPng(receiptRef.current, { cacheBust: true, backgroundColor: '#ffffff', pixelRatio: 2 });
+      const link = document.createElement('a');
+      link.download = `INV-${lastSavedOrder?.orderId || 'POS'}.png`;
+      link.href = dataUrl;
+      link.click();
+      toast.success(t("notifications.image_downloaded"));
+    } catch (err) {
+      toast.error(t("notifications.export_failed"));
+    }
+  };
+
+  const createOrderMutation = useMutation({
+    mutationFn: async (newOrder) => {
+      const res = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newOrder),
+      });
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries(['orders']);
+      queryClient.invalidateQueries(['dashboardStats']);
+      setLastSavedOrder({ ...data.order });
+      setShowReceipt(true);
+      resetForm();
+      toast.success(t("notifications.transaction_success"));
+    }
+  });
+
+  const resetForm = () => {
+    setCart([]);
+    setCustomerInfo({ name: '', phone: '', address: '' });
+    setExpenses({ discount: '', courier: '' });
+    setPaidAmount("");
+    setOrderId(generateId(transactionType));
+  };
+
   const filteredProducts = products.filter(p => 
     p.name?.toLowerCase().includes(searchQuery.toLowerCase())
   ).slice(0, 5);
@@ -58,7 +155,7 @@ export default function UnifiedDashboard() {
     if (exists) {
       setCart(cart.map(item => item.id === product._id ? { ...item, qty: item.qty + 1 } : item));
     } else {
-      setCart([...cart, { id: product._id, name: product.name, price: product.sellingPrice, qty: 1 }]);
+      setCart([...cart, { id: product._id, name: product.name, price: product.sellingPrice, qty: 1, cost: product.costPrice || 0 }]);
     }
     setSearchQuery("");
   };
@@ -70,7 +167,7 @@ export default function UnifiedDashboard() {
   if (!mounted) return null;
 
   return (
-    <div className="p-4 md:p-8 space-y-10 max-w-[1600px] mx-auto text-slate-200">
+    <div className={`p-4 md:p-8 space-y-10 max-w-[1600px] mx-auto text-slate-200 ${theme === 'dark' ? 'bg-[#090E14]' : 'bg-gray-50'}`}>
       
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
@@ -94,24 +191,36 @@ export default function UnifiedDashboard() {
         </button>
       </div>
 
-      {/* KPI Section */}
+      {/* KPI Section - Updated with gradient design */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {[
-          { label: t('total_revenue'), value: stats.totalSales, color: 'text-white', icon: ShoppingBag },
-          { label: t('net_profit'), value: stats.netProfit, color: 'text-emerald-400', icon: TrendingUp },
-          { label: t('total_due'), value: stats.totalDue, color: 'text-red-400', icon: CreditCard },
+          { label: t('total_revenue'), value: stats.totalSales, color: 'from-blue-500/10 to-blue-900/5', border: 'border-blue-500/20', shadow: 'shadow-blue-500/10', icon: ShoppingBag },
+          { label: t('net_profit'), value: stats.netProfit, color: 'from-emerald-500/10 to-emerald-900/5', border: 'border-emerald-500/20', shadow: 'shadow-emerald-500/10', icon: TrendingUp },
+          { label: t('total_due'), value: stats.totalDue, color: 'from-red-500/10 to-red-900/5', border: 'border-red-500/20', shadow: 'shadow-red-500/10', icon: CreditCard },
         ].map((kpi, i) => (
-          <div key={i} className="bg-[#11161D] p-8 rounded-[2.5rem] border border-white/5 relative overflow-hidden group">
-            <kpi.icon className="absolute right-[-20px] bottom-[-20px] size-32 text-white/5" />
-            <p className="text-[10px] font-black text-slate-500 uppercase mb-4 tracking-widest">{kpi.label}</p>
+          <div key={i} className={`bg-gradient-to-br ${kpi.color} p-6 rounded-3xl border ${kpi.border} shadow-lg ${kpi.shadow} transition-all hover:shadow-blue-500/20 hover:border-blue-500/30 group`}>
+            <div className="flex items-center justify-between mb-4">
+              <div className={`p-3 ${kpi.color.includes('blue') ? 'bg-blue-500/20' : kpi.color.includes('emerald') ? 'bg-emerald-500/20' : 'bg-red-500/20'} rounded-2xl`}>
+                <kpi.icon className={kpi.color.includes('blue') ? 'text-blue-500' : kpi.color.includes('emerald') ? 'text-emerald-500' : 'text-red-500'} size={24} />
+              </div>
+              <span className="text-[10px] font-bold px-3 py-1 bg-blue-500/20 text-blue-500 rounded-full">
+                {i === 0 ? t('revenue') : i === 1 ? t('profit') : t('due')}
+              </span>
+            </div>
+            <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">
+              {kpi.label}
+            </h4>
             <div className="flex items-baseline gap-2">
               <span className="text-2xl font-bold opacity-50">{currency}</span>
-              <h3 className={`text-5xl font-black italic tracking-tighter ${kpi.color}`}>
+              <p className="text-4xl font-black italic text-white">
                 {(kpi.value ?? 0).toLocaleString()}
-              </h3>
+              </p>
             </div>
-            <div className="mt-4 flex items-center gap-2 text-[10px] font-bold text-emerald-500">
-              <ArrowUpRight size={14} /> 12% FROM LAST WEEK
+            <div className="mt-4 flex items-center gap-2">
+              <ArrowUpRight size={14} className="text-emerald-500" />
+              <span className="text-[10px] font-bold text-emerald-500">
+                12% {t('from_last_week')}
+              </span>
             </div>
           </div>
         ))}
@@ -376,7 +485,7 @@ export default function UnifiedDashboard() {
         </div>
       </div>
 
-      {/* POS Drawer */}
+      {/* POS Drawer - From Order Page */}
       {showOrderDrawer && (
         <div className="fixed inset-0 z-[100] flex justify-end">
           <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => setShowOrderDrawer(false)} />
@@ -393,60 +502,246 @@ export default function UnifiedDashboard() {
             </div>
 
             <div className="space-y-10">
-              {/* Product Search */}
-              <div className="relative group">
-                <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-blue-500 transition-colors" size={20} />
+              {/* Transaction Type */}
+              <div className="flex p-1 bg-black/20 rounded-2xl border border-white/5 w-full max-w-xs">
+                <button 
+                  onClick={() => setTransactionType("online")} 
+                  className={`flex-1 px-6 py-2 rounded-xl text-xs font-black transition-all ${transactionType === 'online' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'text-slate-500 hover:text-slate-300'}`}
+                >
+                  {t("order.type_online")}
+                </button>
+                <button 
+                  onClick={() => setTransactionType("offline")} 
+                  className={`flex-1 px-6 py-2 rounded-xl text-xs font-black transition-all ${transactionType === 'offline' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/20' : 'text-slate-500 hover:text-slate-300'}`}
+                >
+                  {t("order.type_offline")}
+                </button>
+              </div>
+
+              <div className="font-mono text-sm font-black text-blue-500 bg-blue-500/10 px-4 py-2 rounded-lg border border-blue-500/20 inline-block">
+                {orderId}
+              </div>
+
+              {/* Customer Info */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <input 
-                  className="w-full px-16 py-6 bg-[#11161D] border border-white/5 rounded-3xl text-sm font-bold outline-none focus:border-blue-500/50 transition-all" 
-                  placeholder={t('search_products_to_add')}
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full px-5 py-4 bg-[#1a2230] border border-white/10 rounded-2xl text-sm font-bold outline-none focus:border-blue-500 transition-all placeholder:text-slate-600" 
+                  placeholder={t("customer.phone")} 
+                  value={customerInfo.phone} 
+                  onChange={e => setCustomerInfo({...customerInfo, phone: e.target.value})} 
+                />
+                <input 
+                  className="w-full px-5 py-4 bg-[#1a2230] border border-white/10 rounded-2xl text-sm font-bold outline-none focus:border-blue-500 transition-all placeholder:text-slate-600" 
+                  placeholder={t("customer.name")} 
+                  value={customerInfo.name} 
+                  onChange={e => setCustomerInfo({...customerInfo, name: e.target.value})} 
                 />
                 
-                {searchQuery && (
-                  <div className="absolute top-full left-0 w-full bg-[#1a2230] mt-4 rounded-3xl border border-white/10 overflow-hidden z-50 shadow-2xl p-2 animate-in fade-in slide-in-from-top-2">
-                    {filteredProducts.map(p => (
-                      <button key={p._id} onClick={() => addToCart(p)} className="w-full flex items-center justify-between p-5 hover:bg-blue-600 rounded-2xl transition-all group">
-                        <div>
-                          <p className="font-black text-sm uppercase text-white">{p.name}</p>
-                          <p className="text-[10px] font-bold opacity-50 uppercase tracking-widest">Stock: {p.stock}</p>
-                        </div>
-                        <span className="font-black text-blue-500 group-hover:text-white">{currency}{p.sellingPrice}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Cart Items */}
-              <div className="space-y-6 max-h-96 overflow-y-auto">
-                {cart.length === 0 ? (
-                  <p className="text-center text-slate-400 py-12">{t('cart_empty')}</p>
-                ) : (
-                  cart.map(item => (
-                    <div key={item.id} className="flex items-center justify-between p-6 bg-white/5 rounded-2xl border border-white/10">
-                      <div>
-                        <p className="font-black text-white uppercase">{item.name}</p>
-                        <p className="text-sm text-slate-400">{item.qty} x {currency}{item.price}</p>
-                      </div>
-                      <button onClick={() => removeFromCart(item.id)} className="p-2 hover:bg-red-500/20 rounded-lg text-red-500 transition-all">
-                        <Trash2 size={18} />
-                      </button>
+                {transactionType === "online" && (
+                  <>
+                    <textarea 
+                      className="w-full md:col-span-2 px-5 py-4 bg-[#1a2230] border border-white/10 rounded-2xl text-sm font-bold outline-none min-h-[80px] focus:border-blue-500 transition-all placeholder:text-slate-600" 
+                      placeholder={t("customer.address")} 
+                      value={customerInfo.address} 
+                      onChange={e => setCustomerInfo({...customerInfo, address: e.target.value})} 
+                    />
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest italic ml-2">{t("order.platform")}</label>
+                      <select 
+                        value={orderSource} 
+                        onChange={e => setOrderSource(e.target.value)} 
+                        className="w-full px-5 py-4 bg-[#1a2230] border border-white/10 rounded-2xl text-sm font-bold outline-none focus:border-blue-500 transition-all"
+                      >
+                        <option value="Facebook">Facebook</option>
+                        <option value="Website">Website</option>
+                        <option value="Instagram">Instagram</option>
+                        <option value="Whatsapp">Whatsapp</option>
+                      </select>
                     </div>
-                  ))
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest italic ml-2">{t("order.payment_status")}</label>
+                      <div className="flex flex-col sm:flex-row gap-3">
+                        <select 
+                          value={paymentStatus} 
+                          onChange={e => setPaymentStatus(e.target.value)} 
+                          className="flex-1 px-5 py-4 bg-[#1a2230] border border-white/10 rounded-2xl text-sm font-bold outline-none focus:border-blue-500 transition-all"
+                        >
+                          <option value="COD">{t("order.cod")}</option>
+                          <option value="Paid">{t("order.paid")}</option>
+                          <option value="Partial">{t("order.partial")}</option>
+                        </select>
+                        {paymentStatus === "Partial" && (
+                          <div className="relative flex-1 animate-in slide-in-from-right-2 duration-300">
+                            <Wallet className="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-500" size={16} />
+                            <input 
+                              type="number" 
+                              className="w-full px-12 py-4 bg-[#1a2230] border border-emerald-500/30 rounded-2xl text-sm font-black outline-none focus:border-emerald-500 transition-all" 
+                              placeholder={t("order.paid_amount")} 
+                              value={paidAmount} 
+                              onChange={e => setPaidAmount(e.target.value)} 
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </>
                 )}
               </div>
 
-              {/* Summary */}
-              <div className="space-y-4 border-t border-white/10 pt-8">
-                <div className="flex justify-between text-sm">
-                  <span className="text-slate-400">Subtotal:</span>
-                  <span className="font-bold">{currency}{cart.reduce((acc, i) => acc + (i.price * i.qty), 0).toLocaleString()}</span>
+              {/* Product Selection */}
+              <div className="mt-8 p-6 bg-white/[0.02] rounded-[2.5rem] border border-white/5 space-y-6">
+                <div className="flex flex-col md:flex-row gap-4">
+                  <select 
+                    className="flex-1 px-5 py-4 bg-[#1a2230] border border-white/10 rounded-2xl text-sm font-bold outline-none focus:border-blue-500 transition-all" 
+                    value={selectedProduct.id} 
+                    onChange={e => {
+                      const p = inventory.find(i => i._id === e.target.value);
+                      if(p) setSelectedProduct({ 
+                        id: p._id, 
+                        name: p.name, 
+                        qty: 1, 
+                        stock: p.stock, 
+                        price: p.sellingPrice, 
+                        cost: p.costPrice || 0 
+                      });
+                    }}
+                  >
+                    <option value="">{t("inventory.select_product")}</option>
+                    {inventory.map(item => (
+                      <option key={item._id} value={item._id} disabled={item.stock <= 0}>
+                        {item.name} ({item.stock})
+                      </option>
+                    ))}
+                  </select>
+                  <input 
+                    type="number" 
+                    className="w-full md:w-24 px-5 py-4 bg-[#1a2230] border border-white/10 rounded-2xl text-center font-black outline-none focus:border-blue-500 transition-all" 
+                    value={selectedProduct.qty} 
+                    onChange={e => setSelectedProduct({...selectedProduct, qty: Number(e.target.value)})} 
+                  />
+                  <button 
+                    onClick={() => { 
+                      if (!selectedProduct.id) return; 
+                      setCart([...cart, {...selectedProduct}]); 
+                      setSelectedProduct({ id: '', name: '', qty: 1, stock: 0, price: 0, cost: 0 }); 
+                    }} 
+                    className="px-10 py-4 bg-blue-600 rounded-2xl text-white font-black hover:scale-105 active:scale-95 transition-all flex items-center justify-center"
+                  >
+                    <Plus />
+                  </button>
+                </div>
+                
+                {/* Cart Items */}
+                <div className="space-y-6 max-h-96 overflow-y-auto">
+                  {cart.length === 0 ? (
+                    <p className="text-center text-slate-400 py-12">{t('cart_empty')}</p>
+                  ) : (
+                    cart.map((item, i) => (
+                      <div key={i} className="flex items-center justify-between p-6 bg-white/5 rounded-2xl border border-white/10">
+                        <div>
+                          <p className="font-black text-white uppercase">{item.name}</p>
+                          <p className="text-sm text-slate-400">{item.qty} x {currency}{item.price}</p>
+                        </div>
+                        <button 
+                          onClick={() => setCart(cart.filter((_, idx) => idx !== i))} 
+                          className="p-2 hover:bg-red-500/20 rounded-lg text-red-500 transition-all"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                {/* Expenses */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-white/5 pt-6">
+                  <input 
+                    type="number" 
+                    placeholder={t("order.discount")} 
+                    className="px-5 py-4 bg-black/20 border border-white/10 rounded-2xl text-sm font-bold outline-none focus:border-blue-500" 
+                    value={expenses.discount} 
+                    onChange={e => setExpenses({...expenses, discount: e.target.value})} 
+                  />
+                  {transactionType === "online" && (
+                    <input 
+                      type="number" 
+                      placeholder={t("order.courier")} 
+                      className="px-5 py-4 bg-black/20 border border-white/10 rounded-2xl text-sm font-bold outline-none focus:border-blue-500" 
+                      value={expenses.courier} 
+                      onChange={e => setExpenses({...expenses, courier: e.target.value})} 
+                    />
+                  )}
                 </div>
               </div>
 
-              <button className="w-full py-6 bg-black text-white hover:bg-slate-900 rounded-[2rem] font-black text-sm uppercase tracking-[0.2em] transition-all active:scale-95">
-                {t('complete_transaction')}
+              {/* Submit Button */}
+              <button 
+                onClick={() => createOrderMutation.mutate({ 
+                  orderId, 
+                  transactionType, 
+                  orderSource, 
+                  paymentStatus: transactionType === "offline" ? "Paid" : paymentStatus,
+                  customerName: customerInfo.name, 
+                  customerPhone: customerInfo.phone, 
+                  customerAddress: customerInfo.address,
+                  products: cart, 
+                  discount: Number(expenses.discount), 
+                  courier: Number(expenses.courier),
+                  totalSell: summary.totalSell, 
+                  netProfit: summary.netProfit, 
+                  dueAmount: summary.dueAmount, 
+                  paidAmount: summary.currentPaid,
+                  isConfirmedSell: summary.isConfirmedSell
+                })} 
+                className={`w-full mt-8 py-6 rounded-3xl font-black uppercase shadow-2xl active:scale-95 transition-all ${transactionType === 'offline' ? 'bg-emerald-600 shadow-emerald-600/20' : 'bg-blue-600 shadow-blue-600/20'}`}
+              >
+                {transactionType === 'offline' ? t("order.confirm_sale") : t("order.create_order")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Receipt Modal */}
+      {showReceipt && lastSavedOrder && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
+          <div className="bg-white rounded-[2.5rem] w-full max-w-sm overflow-hidden text-slate-900 shadow-2xl">
+            <div ref={receiptRef} className="p-8 bg-white">
+              <div className="text-center border-b-2 border-dashed border-slate-200 pb-4 mb-6 uppercase">
+                <h2 className="text-xl font-black italic tracking-tighter text-blue-600">Xeetrix Control Room</h2>
+                <p className="text-[10px] font-bold text-slate-400 mt-1">{lastSavedOrder?.orderId || 'N/A'}</p>
+              </div>
+              <div className="space-y-2 mb-6 bg-slate-50 p-6 rounded-3xl border border-slate-100 text-slate-700">
+                <div className="flex justify-between text-[11px] font-bold">
+                  <span>{t("summary.subtotal")}</span>
+                  <span>{currency}{(Number(lastSavedOrder?.totalSell) - (Number(lastSavedOrder?.courier) || 0) + (Number(lastSavedOrder?.discount) || 0)).toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between text-[11px] font-bold text-red-500">
+                  <span>{t("order.discount")}</span>
+                  <span>-{currency}{(Number(lastSavedOrder?.discount) || 0).toLocaleString()}</span>
+                </div>
+                {lastSavedOrder?.transactionType === "online" && (
+                  <div className="flex justify-between text-[11px] font-bold text-blue-500">
+                    <span>{t("order.courier")}</span>
+                    <span>+{currency}{(Number(lastSavedOrder?.courier) || 0).toLocaleString()}</span>
+                  </div>
+                )}
+                <div className="border-t border-slate-200 pt-3 mt-3 flex justify-between font-black text-2xl tracking-tighter text-slate-900">
+                  <span>{t("summary.total")}</span>
+                  <span>{currency}{(Number(lastSavedOrder?.totalSell) || 0).toLocaleString()}</span>
+                </div>
+              </div>
+              <p className="text-center text-[8px] font-black text-slate-300 uppercase italic">{t("receipt.verified")}</p>
+            </div>
+            <div className="p-6 bg-slate-100 grid grid-cols-2 gap-3 border-t border-slate-200">
+              <button onClick={() => window.print()} className="bg-slate-900 text-white py-4 rounded-2xl font-black uppercase text-[10px] flex items-center justify-center gap-2 transition-all">
+                <Printer size={14}/> {t("receipt.print")}
+              </button>
+              <button onClick={downloadReceiptImage} className="bg-blue-600 text-white py-4 rounded-2xl font-black uppercase text-[10px] flex items-center justify-center gap-2 transition-all">
+                <ImageIcon size={14}/> {t("receipt.save_image")}
+              </button>
+              <button onClick={() => setShowReceipt(false)} className="col-span-2 py-3 bg-white border border-slate-300 rounded-2xl font-black uppercase text-[10px] text-slate-500">
+                {t("receipt.close")}
               </button>
             </div>
           </div>
