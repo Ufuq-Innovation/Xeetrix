@@ -230,7 +230,7 @@ export default function UnifiedDashboard() {
               </div>
 
               <button 
-                onClick={() => createOrderMutation.mutate({...})}
+                onClick={() => createOrderMutation.mutate({ items: cart, customer: customerInfo, transactionType, paymentStatus, paidAmount: Number(paidAmount) || 0, ...orderSummary })}
                 className="w-full py-6 bg-blue-600 rounded-3xl font-black text-sm uppercase tracking-widest shadow-2xl transition-all active:scale-[0.98]"
               >
                 {t('complete_transaction')}
