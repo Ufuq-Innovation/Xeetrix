@@ -1,0 +1,1 @@
+export default function Page() { return <div>Customer Management (CRM Lite) - Coming Soon</div> }
