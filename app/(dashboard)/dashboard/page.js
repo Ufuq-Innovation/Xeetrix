@@ -209,20 +209,17 @@ export default function UnifiedDashboard() {
               </div>
 
               {/* Cart Items */}
-              <div className="space-y-4">
-                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">{t('cart_items')}</p>
+              <div className="space-y-6 max-h-96 overflow-y-auto">
                 {cart.length === 0 ? (
-                  <div className="h-32 border-2 border-dashed border-white/5 rounded-[2rem] flex items-center justify-center text-slate-600 text-[10px] font-black uppercase tracking-widest">
-                    {t('cart_is_empty')}
-                  </div>
+                  <p className="text-center text-slate-400 py-12">{t('cart_empty')}</p>
                 ) : (
                   cart.map(item => (
-                    <div key={item.id} className="flex items-center justify-between bg-white/5 p-5 rounded-2xl group border border-white/5">
-                      <div className="flex-1">
-                        <p className="font-black text-sm uppercase italic text-white">{item.name}</p>
-                        <p className="text-[10px] font-bold text-blue-500 uppercase">{currency}{item.price} x {item.qty}</p>
+                    <div key={item.id} className="flex items-center justify-between p-6 bg-white/5 rounded-2xl border border-white/10">
+                      <div>
+                        <p className="font-black text-white uppercase">{item.name}</p>
+                        <p className="text-sm text-slate-400">{item.qty} x {currency}{item.price}</p>
                       </div>
-                      <button onClick={() => removeFromCart(item.id)} className="p-3 text-red-500 hover:bg-red-500/10 rounded-xl transition-all">
+                      <button onClick={() => removeFromCart(item.id)} className="p-2 hover:bg-red-500/20 rounded-lg text-red-500 transition-all">
                         <Trash2 size={18} />
                       </button>
                     </div>
@@ -230,21 +227,17 @@ export default function UnifiedDashboard() {
                 )}
               </div>
 
-              {/* Summary & Checkout */}
-              <div className="bg-blue-600 p-10 rounded-[3rem] shadow-2xl shadow-blue-500/20">
-                <div className="flex justify-between items-center mb-8">
-                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/70">{t('payable_amount')}</span>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-xl font-bold text-white/50">{currency}</span>
-                    <span className="text-5xl font-black italic tracking-tighter text-white">
-                      {(cart.reduce((acc, i) => acc + (i.price * i.qty), 0) ?? 0).toLocaleString()}
-                    </span>
-                  </div>
+              {/* Summary */}
+              <div className="space-y-4 border-t border-white/10 pt-8">
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-400">Subtotal:</span>
+                  <span className="font-bold">{currency}{cart.reduce((acc, i) => acc + (i.price * i.qty), 0).toLocaleString()}</span>
                 </div>
-                <button className="w-full py-6 bg-black text-white hover:bg-slate-900 rounded-[2rem] font-black text-sm uppercase tracking-[0.2em] transition-all active:scale-95">
-                  {t('complete_transaction')}
-                </button>
               </div>
+
+              <button className="w-full py-6 bg-black text-white hover:bg-slate-900 rounded-[2rem] font-black text-sm uppercase tracking-[0.2em] transition-all active:scale-95">
+                {t('complete_transaction')}
+              </button>
             </div>
           </div>
         </div>
