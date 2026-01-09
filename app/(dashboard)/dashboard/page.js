@@ -24,6 +24,8 @@ export default function UnifiedDashboard() {
   
   const [mounted, setMounted] = useState(false);
   const [showOrderDrawer, setShowOrderDrawer] = useState(false);
+  const [activeFilter, setActiveFilter] = useState('all'); // ✅ Time filter state
+  const [filteredData, setFilteredData] = useState(null); // ✅ Filtered data state
   
   // POS Drawer States (from order page)
   const [transactionType, setTransactionType] = useState("online");
@@ -37,7 +39,7 @@ export default function UnifiedDashboard() {
   const [selectedProduct, setSelectedProduct] = useState({ id: '', name: '', qty: 1, stock: 0, price: 0, cost: 0 });
   const [customerInfo, setCustomerInfo] = useState({ name: '', phone: '', address: '' });
   const [expenses, setExpenses] = useState({ discount: '', courier: '' });
-  const [searchQuery, setSearchQuery] = useState(""); // <-- এই লাইনটা এড করেছি
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -63,13 +65,46 @@ export default function UnifiedDashboard() {
     }
   });
 
+  // ✅ Time Filter Handler
+  const handleTimeFilter = (period) => {
+    setActiveFilter(period.toLowerCase());
+    
+    const now = new Date();
+    
+    switch(period.toLowerCase()) {
+      case 'today':
+        toast.success(t('filter.today_selected'));
+        break;
+      case 'week':
+        toast.success(t('filter.week_selected'));
+        break;
+      case 'month':
+        toast.success(t('filter.month_selected'));
+        break;
+      case 'year':
+        toast.success(t('filter.year_selected'));
+        break;
+      default:
+        toast.success(t('filter.all_selected'));
+    }
+    
+    // API call for filtered data
+    fetch(`/api/dashboard?period=${period.toLowerCase()}`)
+      .then(res => res.json())
+      .then(data => setFilteredData(data))
+      .catch(() => toast.error(t('filter.fetch_error')));
+  };
+
   // --- Safe Stats Logic ---
-  const stats = useMemo(() => ({
-    totalSales: dashboardData?.summary?.totalSales ?? 0,
-    netProfit: dashboardData?.summary?.netProfit ?? 0,
-    totalDue: dashboardData?.summary?.totalDue ?? 0,
-    totalExpense: dashboardData?.summary?.totalExpense ?? 0,
-  }), [dashboardData]);
+  const stats = useMemo(() => {
+    const dataToUse = filteredData || dashboardData;
+    return {
+      totalSales: dataToUse?.summary?.totalSales ?? 0,
+      netProfit: dataToUse?.summary?.netProfit ?? 0,
+      totalDue: dataToUse?.summary?.totalDue ?? 0,
+      totalExpense: dataToUse?.summary?.totalExpense ?? 0,
+    };
+  }, [dashboardData, filteredData]);
 
   // --- POS Drawer Functions ---
   const generateId = (type) => {
@@ -144,7 +179,7 @@ export default function UnifiedDashboard() {
     setCustomerInfo({ name: '', phone: '', address: '' });
     setExpenses({ discount: '', courier: '' });
     setPaidAmount("");
-    setSearchQuery(""); // <-- এই লাইনটা এড করেছি
+    setSearchQuery("");
     setOrderId(generateId(transactionType));
   };
 
@@ -191,6 +226,37 @@ export default function UnifiedDashboard() {
           <Plus size={20} className="group-hover:rotate-90 transition-transform" /> 
           {t('create_new_order')}
         </button>
+      </div>
+
+      {/* ✅ Time Filter Buttons */}
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-wrap gap-2">
+          {['All', 'Today', 'Week', 'Month', 'Year'].map((period) => (
+            <button
+              key={period}
+              onClick={() => handleTimeFilter(period)}
+              className={`
+                px-5 py-2.5 rounded-xl text-xs font-black uppercase transition-all duration-300
+                ${activeFilter === period.toLowerCase() 
+                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' 
+                  : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-slate-300'
+                }
+              `}
+            >
+              {period}
+            </button>
+          ))}
+        </div>
+        
+        <div className="flex items-center space-x-3">
+          <div className="text-right hidden md:block">
+            <p className="text-[10px] font-black text-slate-500 uppercase">{t('filter.active_filter')}</p>
+            <p className="text-sm font-black text-blue-500">
+              {activeFilter.charAt(0).toUpperCase() + activeFilter.slice(1)}
+            </p>
+          </div>
+          <div className="w-3 h-3 bg-emerald-500 rounded-full animate-pulse"></div>
+        </div>
       </div>
 
       {/* KPI Section - Updated with gradient design */}

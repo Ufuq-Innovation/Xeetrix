@@ -75,13 +75,6 @@ export default function UnifiedOrderPage() {
     refetchOnWindowFocus: false,
   });
 
-  // ✅ Filtered products for search
-  const filteredProducts = useMemo(() => {
-    return inventory.filter(p => 
-      p.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (p.sku && p.sku.toLowerCase().includes(searchQuery.toLowerCase()))
-    ).slice(0, 8);
-  }, [inventory, searchQuery]);
 
   const summary = useMemo(() => {
     const subTotal = cart.reduce((acc, i) => acc + (i.price * i.qty), 0);
