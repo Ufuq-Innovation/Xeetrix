@@ -24,6 +24,7 @@
     "next": "latest",
     "react": "latest",
     "react-date-range": "^2.0.1",
+    "react-datepicker": "^9.1.0",
     "react-dom": "latest",
     "react-i18next": "^16.5.1",
     "recharts": "^2.15.4",
