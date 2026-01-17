@@ -1,10 +1,11 @@
-// app/api/customers/export/route.js
+// app/api/customers/export/route.js - নতুন ফাইল তৈরি করুন
+
 import { NextResponse } from "next/server";
 import { MongoClient } from "mongodb";
 
 const uri = process.env.MONGODB_URI;
 const client = new MongoClient(uri);
-const dbName = process.env.MONGODB_DB || "your_database";
+const dbName = process.env.MONGODB_DB || "xeetrix";
 
 async function connectDB() {
   try {
@@ -21,68 +22,59 @@ async function connectDB() {
 export async function GET() {
   try {
     const db = await connectDB();
-    const customersCollection = db.collection("customers");
+    const customersCollection = db.collection('customers');
     
-    // Fetch all customers
-    const customers = await customersCollection
-      .find({})
-      .sort({ name: 1 })
-      .toArray();
+    const customers = await customersCollection.find({}).toArray();
     
     // Prepare CSV content
     const headers = [
-      "Name",
-      "Email",
-      "Phone",
-      "Company",
-      "Address",
-      "City",
-      "Country",
-      "Status",
-      "Type",
-      "Tax Number",
-      "Total Purchases",
-      "Total Spent",
-      "Last Purchase",
-      "Notes"
+      'Name',
+      'Email', 
+      'Phone',
+      'Address',
+      'City',
+      'Country',
+      'Company',
+      'Status',
+      'Customer Type',
+      'Total Purchases',
+      'Total Spent',
+      'Created At'
     ];
     
     const rows = customers.map(customer => [
-      customer.name || "",
-      customer.email || "",
-      customer.phone || "",
-      customer.company || "",
-      customer.address || "",
-      customer.city || "",
-      customer.country || "",
-      customer.status || "",
-      customer.customerType || "",
-      customer.taxNumber || "",
+      `"${customer.name || ''}"`,
+      `"${customer.email || ''}"`,
+      `"${customer.phone || ''}"`,
+      `"${customer.address || ''}"`,
+      `"${customer.city || ''}"`,
+      `"${customer.country || ''}"`,
+      `"${customer.company || ''}"`,
+      `"${customer.status || ''}"`,
+      `"${customer.customerType || ''}"`,
       customer.totalPurchases || 0,
       customer.totalSpent || 0,
-      customer.lastPurchaseDate ? new Date(customer.lastPurchaseDate).toISOString().split('T')[0] : "",
-      customer.notes || ""
+      customer.createdAt ? new Date(customer.createdAt).toISOString().split('T')[0] : ''
     ]);
     
-    // Create CSV content
     const csvContent = [
-      headers.join(","),
-      ...rows.map(row => row.map(cell => `"${cell.toString().replace(/"/g, '""')}"`).join(","))
-    ].join("\n");
+      headers.join(','),
+      ...rows.map(row => row.join(','))
+    ].join('\n');
     
-    // Create response with CSV file
+    // Create response
     return new Response(csvContent, {
       headers: {
-        "Content-Type": "text/csv",
-        "Content-Disposition": `attachment; filename="customers-${new Date().toISOString().split('T')[0]}.csv"`
+        'Content-Type': 'text/csv',
+        'Content-Disposition': `attachment; filename="customers_${new Date().toISOString().split('T')[0]}.csv"`
       }
     });
     
   } catch (error) {
-    console.error("Export Error:", error);
-    return NextResponse.json({
-      success: false,
-      error: error.message || "Export failed"
-    }, { status: 500 });
+    console.error('Export error:', error);
+    return NextResponse.json(
+      { success: false, message: error.message || 'Export failed' },
+      { status: 500 }
+    );
   }
 }

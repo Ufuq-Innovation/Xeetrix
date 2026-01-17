@@ -1,10 +1,11 @@
-// app/api/customers/route.js
+// app/api/customers/route.js - পুরো ফাইলটি এই কোড দিয়ে replace করুন
+
 import { NextResponse } from "next/server";
 import { MongoClient, ObjectId } from "mongodb";
 
 const uri = process.env.MONGODB_URI;
 const client = new MongoClient(uri);
-const dbName = process.env.MONGODB_DB || "your_database";
+const dbName = process.env.MONGODB_DB || "xeetrix";
 
 async function connectDB() {
   try {
@@ -18,76 +19,67 @@ async function connectDB() {
   }
 }
 
-// GET - Fetch customers with filtering and sorting
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
-    const search = searchParams.get("search");
-    const status = searchParams.get("status");
-    const sort = searchParams.get("sort") || "recent";
+    const search = searchParams.get('search');
+    const status = searchParams.get('status');
+    const sort = searchParams.get('sort') || 'recent';
     
     const db = await connectDB();
-    const customersCollection = db.collection("customers");
+    const customersCollection = db.collection('customers');
     
     // Build query
     let query = {};
     
-    // Search filter
     if (search) {
       query.$or = [
-        { name: { $regex: search, $options: "i" } },
-        { email: { $regex: search, $options: "i" } },
-        { phone: { $regex: search, $options: "i" } },
-        { company: { $regex: search, $options: "i" } }
+        { name: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } },
+        { phone: { $regex: search, $options: 'i' } },
+        { company: { $regex: search, $options: 'i' } }
       ];
     }
     
-    // Status filter
-    if (status && status !== "all") {
-      if (status === "vip") {
-        query.customerType = "vip";
+    if (status && status !== 'all') {
+      if (status === 'vip') {
+        query.customerType = 'vip';
       } else {
         query.status = status;
       }
     }
     
-    // Build sort options
-    let sortOptions = {};
+    // Build sort
+    let sortOption = {};
     switch (sort) {
-      case "name":
-        sortOptions = { name: 1 };
+      case 'name':
+        sortOption = { name: 1 };
         break;
-      case "purchases":
-        sortOptions = { totalPurchases: -1 };
+      case 'purchases':
+        sortOption = { totalPurchases: -1 };
         break;
-      case "spent":
-        sortOptions = { totalSpent: -1 };
+      case 'spent':
+        sortOption = { totalSpent: -1 };
         break;
-      default: // recent
-        sortOptions = { createdAt: -1 };
+      default:
+        sortOption = { createdAt: -1 };
     }
     
-    // Fetch customers
     const customers = await customersCollection
       .find(query)
-      .sort(sortOptions)
+      .sort(sortOption)
       .toArray();
     
     // Calculate stats
-    const totalCustomers = customers.length;
-    const activeCustomers = customers.filter(c => c.status === "active").length;
-    const vipCustomers = customers.filter(c => c.customerType === "vip").length;
-    const totalSpent = customers.reduce((sum, c) => sum + (c.totalSpent || 0), 0);
-    const totalPurchases = customers.reduce((sum, c) => sum + (c.totalPurchases || 0), 0);
-    const avgPurchaseValue = totalPurchases > 0 ? totalSpent / totalPurchases : 0;
-    
     const stats = {
-      totalCustomers,
-      activeCustomers,
-      vipCustomers,
-      totalSpent,
-      totalPurchases,
-      avgPurchaseValue
+      totalCustomers: customers.length,
+      activeCustomers: customers.filter(c => c.status === 'active').length,
+      vipCustomers: customers.filter(c => c.customerType === 'vip').length,
+      totalPurchases: customers.reduce((sum, c) => sum + (c.totalPurchases || 0), 0),
+      totalSpent: customers.reduce((sum, c) => sum + (c.totalSpent || 0), 0),
+      avgPurchaseValue: customers.length > 0 
+        ? customers.reduce((sum, c) => sum + (c.totalSpent || 0), 0) / customers.length
+        : 0
     };
     
     return NextResponse.json({
@@ -98,78 +90,79 @@ export async function GET(request) {
     });
     
   } catch (error) {
-    console.error("GET Error:", error);
-    return NextResponse.json({
-      success: false,
-      error: error.message || "Failed to fetch customers"
-    }, { status: 500 });
+    console.error('GET error:', error);
+    return NextResponse.json(
+      { success: false, message: error.message || 'Failed to fetch customers' },
+      { status: 500 }
+    );
   }
 }
 
-// POST - Add new customer
-export async function POST(req) {
+export async function POST(request) {
   try {
-    const body = await req.json();
-    const {
-      name,
-      email,
-      phone,
-      address,
-      city,
-      country,
-      status = "active",
-      customerType = "regular",
-      notes = "",
-      taxNumber = "",
-      company = ""
+    const body = await request.json();
+    const { 
+      name, 
+      email, 
+      phone, 
+      address, 
+      city, 
+      country, 
+      company,
+      status = 'active',
+      customerType = 'regular',
+      notes = '',
+      taxNumber = ''
     } = body;
     
     // Validation
     if (!name || !name.trim()) {
-      return NextResponse.json({
-        success: false,
-        error: "Customer name is required"
-      }, { status: 400 });
+      return NextResponse.json(
+        { success: false, message: 'Customer name is required' },
+        { status: 400 }
+      );
     }
     
     if (!phone || !phone.trim()) {
-      return NextResponse.json({
-        success: false,
-        error: "Phone number is required"
-      }, { status: 400 });
+      return NextResponse.json(
+        { success: false, message: 'Phone number is required' },
+        { status: 400 }
+      );
     }
     
     const db = await connectDB();
-    const customersCollection = db.collection("customers");
+    const customersCollection = db.collection('customers');
     
-    // Check for duplicate phone or email
+    // Check duplicate
     const existingCustomer = await customersCollection.findOne({
       $or: [
         { phone: phone.trim() },
-        { email: email?.trim() }
+        { email: email?.trim() || '' }
       ]
     });
     
     if (existingCustomer) {
-      return NextResponse.json({
-        success: false,
-        error: "Customer with this phone or email already exists"
-      }, { status: 409 });
+      return NextResponse.json(
+        { success: false, message: 'Customer with this phone or email already exists' },
+        { status: 409 }
+      );
     }
     
-    // Prepare customer document
+    // Clean phone number
+    const cleanPhone = phone.replace(/\D/g, '');
+    
     const customer = {
       name: name.trim(),
-      email: email?.trim() || "",
-      phone: phone.trim(),
-      address: address?.trim() || "",
-      city: city?.trim() || "",
-      country: country?.trim() || "",
-      status,
-      customerType,
-      notes: notes?.trim() || "",
-      taxNumber: taxNumber?.trim() || "",
-      company: company?.trim() || "",
+      email: email?.trim() || '',
+      phone: cleanPhone,
+      address: address?.trim() || '',
+      city: city?.trim() || '',
+      country: country?.trim() || '',
+      company: company?.trim() || '',
+      status: status.toLowerCase(),
+      customerType: customerType.toLowerCase(),
+      notes: notes?.trim() || '',
+      taxNumber: taxNumber?.trim() || '',
       totalPurchases: 0,
       totalSpent: 0,
       averageOrderValue: 0,
@@ -178,47 +171,44 @@ export async function POST(req) {
       updatedAt: new Date()
     };
     
-    // Insert customer
     const result = await customersCollection.insertOne(customer);
     
     return NextResponse.json({
       success: true,
-      id: result.insertedId,
-      customer: { ...customer, _id: result.insertedId },
-      message: "Customer added successfully"
+      message: 'Customer added successfully',
+      customer: { ...customer, _id: result.insertedId }
     });
     
   } catch (error) {
-    console.error("POST Error:", error);
-    return NextResponse.json({
-      success: false,
-      error: error.message || "Failed to add customer"
-    }, { status: 500 });
+    console.error('POST error:', error);
+    return NextResponse.json(
+      { success: false, message: error.message || 'Failed to add customer' },
+      { status: 500 }
+    );
   }
 }
 
-// PUT - Update customer
-export async function PUT(req) {
+export async function PUT(request) {
   try {
-    const body = await req.json();
+    const body = await request.json();
     const { id, ...updateData } = body;
     
     if (!id) {
-      return NextResponse.json({
-        success: false,
-        error: "Customer ID is required"
-      }, { status: 400 });
+      return NextResponse.json(
+        { success: false, message: 'Customer ID is required' },
+        { status: 400 }
+      );
     }
     
     if (!ObjectId.isValid(id)) {
-      return NextResponse.json({
-        success: false,
-        error: "Invalid customer ID"
-      }, { status: 400 });
+      return NextResponse.json(
+        { success: false, message: 'Invalid customer ID' },
+        { status: 400 }
+      );
     }
     
     const db = await connectDB();
-    const customersCollection = db.collection("customers");
+    const customersCollection = db.collection('customers');
     
     // Check if customer exists
     const existingCustomer = await customersCollection.findOne({
@@ -226,42 +216,19 @@ export async function PUT(req) {
     });
     
     if (!existingCustomer) {
-      return NextResponse.json({
-        success: false,
-        error: "Customer not found"
-      }, { status: 404 });
+      return NextResponse.json(
+        { success: false, message: 'Customer not found' },
+        { status: 404 }
+      );
     }
     
-    // Check for duplicate phone or email (excluding current customer)
-    if (updateData.phone || updateData.email) {
-      const duplicateQuery = {
-        _id: { $ne: new ObjectId(id) },
-        $or: []
-      };
-      
-      if (updateData.phone) {
-        duplicateQuery.$or.push({ phone: updateData.phone.trim() });
-      }
-      
-      if (updateData.email) {
-        duplicateQuery.$or.push({ email: updateData.email.trim() });
-      }
-      
-      if (duplicateQuery.$or.length > 0) {
-        const duplicate = await customersCollection.findOne(duplicateQuery);
-        if (duplicate) {
-          return NextResponse.json({
-            success: false,
-            error: "Another customer with this phone or email already exists"
-          }, { status: 409 });
-        }
-      }
+    // Update phone if provided
+    if (updateData.phone) {
+      updateData.phone = updateData.phone.replace(/\D/g, '');
     }
     
-    // Prepare update
     updateData.updatedAt = new Date();
     
-    // Update customer
     const result = await customersCollection.updateOne(
       { _id: new ObjectId(id) },
       { $set: updateData }
@@ -269,77 +236,62 @@ export async function PUT(req) {
     
     return NextResponse.json({
       success: true,
-      modifiedCount: result.modifiedCount,
-      message: "Customer updated successfully"
+      message: 'Customer updated successfully',
+      modifiedCount: result.modifiedCount
     });
     
   } catch (error) {
-    console.error("PUT Error:", error);
-    return NextResponse.json({
-      success: false,
-      error: error.message || "Failed to update customer"
-    }, { status: 500 });
+    console.error('PUT error:', error);
+    return NextResponse.json(
+      { success: false, message: error.message || 'Failed to update customer' },
+      { status: 500 }
+    );
   }
 }
 
-// DELETE - Remove customer
-export async function DELETE(req) {
+export async function DELETE(request) {
   try {
-    const { searchParams } = new URL(req.url);
-    const id = searchParams.get("id");
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
     
     if (!id) {
-      return NextResponse.json({
-        success: false,
-        error: "Customer ID is required"
-      }, { status: 400 });
+      return NextResponse.json(
+        { success: false, message: 'Customer ID is required' },
+        { status: 400 }
+      );
     }
     
     if (!ObjectId.isValid(id)) {
-      return NextResponse.json({
-        success: false,
-        error: "Invalid customer ID"
-      }, { status: 400 });
+      return NextResponse.json(
+        { success: false, message: 'Invalid customer ID' },
+        { status: 400 }
+      );
     }
     
     const db = await connectDB();
-    const customersCollection = db.collection("customers");
-    const ordersCollection = db.collection("orders");
+    const customersCollection = db.collection('customers');
     
-    // Check if customer has orders
-    const orderCount = await ordersCollection.countDocuments({
-      customerId: id
-    });
-    
-    if (orderCount > 0) {
-      return NextResponse.json({
-        success: false,
-        error: "Cannot delete customer with existing orders. Archive instead."
-      }, { status: 400 });
-    }
-    
-    // Delete customer
     const result = await customersCollection.deleteOne({
       _id: new ObjectId(id)
     });
     
     if (result.deletedCount === 0) {
-      return NextResponse.json({
-        success: false,
-        error: "Customer not found"
-      }, { status: 404 });
+      return NextResponse.json(
+        { success: false, message: 'Customer not found' },
+        { status: 404 }
+      );
     }
     
     return NextResponse.json({
       success: true,
-      message: "Customer deleted successfully"
+      message: 'Customer deleted successfully'
     });
     
   } catch (error) {
-    console.error("DELETE Error:", error);
-    return NextResponse.json({
-      success: false,
-      error: error.message || "Failed to delete customer"
-    }, { status: 500 });
+    console.error('DELETE error:', error);
+    return NextResponse.json(
+      { success: false, message: error.message || 'Failed to delete customer' },
+      { status: 500 }
+    );
   }
 }
