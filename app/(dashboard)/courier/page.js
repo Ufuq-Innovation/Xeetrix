@@ -8,9 +8,11 @@ import {
   Phone, Calendar, Search, RefreshCw, Loader2, Edit2, 
   Trash2, PlusCircle, Home, Mail, CreditCard, MapPin
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export default function CourierPage() {
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
 
   const [activeTab, setActiveTab] = useState("pending");
   const [searchTerm, setSearchTerm] = useState("");
@@ -136,7 +138,7 @@ export default function CourierPage() {
       setShowDeliveryForm(false);
       setSelectedDelivery(null);
       resetDeliveryForm();
-      toast.success(selectedDelivery ? "Updated" : "Created");
+      toast.success(selectedDelivery ? t("updated") : t("created"));
     },
     onError: (error) => toast.error(error.message)
   });
@@ -165,7 +167,7 @@ export default function CourierPage() {
       setShowCourierForm(false);
       setSelectedCourier(null);
       resetCourierForm();
-      toast.success(selectedCourier ? "Updated" : "Added");
+      toast.success(selectedCourier ? t("updated") : t("added"));
     },
     onError: (error) => toast.error(error.message)
   });
@@ -205,7 +207,7 @@ export default function CourierPage() {
     onSuccess: () => {
       queryClient.invalidateQueries(["deliveries"]);
       queryClient.invalidateQueries(["courier-stats"]);
-      toast.success("Deleted");
+      toast.success(t("deleted"));
     },
     onError: (error) => toast.error(error.message)
   });
@@ -270,7 +272,7 @@ export default function CourierPage() {
   };
 
   const handleDeleteDelivery = (id) => {
-    if (confirm("Delete this delivery?")) {
+    if (confirm(t("delete_confirmation"))) {
       deleteDeliveryMutation.mutate(id);
     }
   };
@@ -287,10 +289,10 @@ export default function CourierPage() {
       if (data.success) {
         queryClient.invalidateQueries(["deliveries"]);
         queryClient.invalidateQueries(["courier-stats"]);
-        toast.success(`Status: ${status}`);
+        toast.success(`${t("status")}: ${t(status)}`);
       }
     } catch (error) {
-      toast.error("Failed");
+      toast.error(t("failed"));
     }
   };
 
@@ -315,7 +317,7 @@ export default function CourierPage() {
   const handleAssignSubmit = (e) => {
     e.preventDefault();
     if (!assignForm.courierId) {
-      toast.error("Select courier");
+      toast.error(t("select_courier"));
       return;
     }
     assignMutation.mutate(assignForm);
@@ -346,25 +348,25 @@ export default function CourierPage() {
 
   const statsCards = [
     {
-      label: "Pending",
+      label: t("pending"),
       value: stats.pendingDeliveries || 0,
       icon: Package,
       color: "text-yellow-500"
     },
     {
-      label: "In Transit",
+      label: t("in_transit"),
       value: stats.inTransitDeliveries || 0,
       icon: Truck,
       color: "text-blue-500"
     },
     {
-      label: "Delivered Today",
+      label: t("delivered_today"),
       value: stats.deliveredToday || 0,
       icon: CheckCircle,
       color: "text-green-500"
     },
     {
-      label: "Active Couriers",
+      label: t("active_couriers"),
       value: stats.activeCouriers || 0,
       icon: User,
       color: "text-purple-500"
@@ -385,8 +387,8 @@ export default function CourierPage() {
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold">Courier Management</h1>
-            <p className="text-slate-400 mt-1">Manage deliveries and couriers</p>
+            <h1 className="text-2xl md:text-3xl font-bold">{t("courier_management")}</h1>
+            <p className="text-slate-400 mt-1">{t("manage_deliveries_couriers")}</p>
           </div>
           
           <div className="flex gap-3">
@@ -395,7 +397,7 @@ export default function CourierPage() {
               className="px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg flex items-center gap-2"
             >
               <User size={16} />
-              Add Courier
+              {t("add_courier")}
             </button>
             
             <button
@@ -403,7 +405,7 @@ export default function CourierPage() {
               className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg flex items-center gap-2"
             >
               <PlusCircle size={16} />
-              New Delivery
+              {t("new_delivery")}
             </button>
           </div>
         </div>
@@ -411,7 +413,7 @@ export default function CourierPage() {
         {/* Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {statsCards.map((stat, index) => (
-            <div key={index} className="bg-gray-900 p-4 rounded-xl border border-gray-800">
+            <div key={`stat-${index}`} className="bg-gray-900 p-4 rounded-xl border border-gray-800">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-slate-400">{stat.label}</p>
@@ -431,7 +433,7 @@ export default function CourierPage() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
                 <input
                   type="text"
-                  placeholder="Search deliveries..."
+                  placeholder={t("search_deliveries")}
                   className="w-full pl-10 pr-4 py-2.5 bg-gray-800 border border-gray-700 rounded-lg text-white"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
@@ -445,16 +447,17 @@ export default function CourierPage() {
                 onChange={(e) => setActiveTab(e.target.value)}
                 className="px-4 py-2.5 bg-gray-800 border border-gray-700 rounded-lg text-white"
               >
-                <option value="pending">Pending</option>
-                <option value="in-transit">In Transit</option>
-                <option value="delivered">Delivered</option>
-                <option value="returned">Returned</option>
-                <option value="all">All</option>
+                <option value="pending">{t("pending")}</option>
+                <option value="in-transit">{t("in_transit")}</option>
+                <option value="delivered">{t("delivered")}</option>
+                <option value="returned">{t("returned")}</option>
+                <option value="all">{t("all")}</option>
               </select>
               
               <button
                 onClick={() => refetchDeliveries()}
                 className="px-4 py-2.5 bg-gray-800 hover:bg-gray-700 rounded-lg"
+                title={t("refresh")}
               >
                 <RefreshCw size={18} className={deliveriesLoading ? "animate-spin" : ""} />
               </button>
@@ -465,29 +468,29 @@ export default function CourierPage() {
         {/* Deliveries Table */}
         <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden">
           <div className="p-4 border-b border-gray-800">
-            <h2 className="text-lg font-bold">Deliveries ({deliveries.length})</h2>
+            <h2 className="text-lg font-bold">{t("deliveries")} ({deliveries.length})</h2>
           </div>
           
           <div className="overflow-x-auto">
             {deliveries.length === 0 ? (
               <div className="p-8 text-center">
                 <Package className="mx-auto text-slate-600 mb-3" size={40} />
-                <p className="text-slate-400">No deliveries found</p>
+                <p className="text-slate-400">{t("no_deliveries_found")}</p>
               </div>
             ) : (
               <table className="w-full">
                 <thead className="bg-gray-800/50">
                   <tr>
-                    <th className="p-3 text-left text-sm text-slate-400">Order ID</th>
-                    <th className="p-3 text-left text-sm text-slate-400">Customer</th>
-                    <th className="p-3 text-left text-sm text-slate-400">Details</th>
-                    <th className="p-3 text-left text-sm text-slate-400">Status</th>
-                    <th className="p-3 text-left text-sm text-slate-400">Actions</th>
+                    <th className="p-3 text-left text-sm text-slate-400">{t("order_id")}</th>
+                    <th className="p-3 text-left text-sm text-slate-400">{t("customer")}</th>
+                    <th className="p-3 text-left text-sm text-slate-400">{t("details")}</th>
+                    <th className="p-3 text-left text-sm text-slate-400">{t("status")}</th>
+                    <th className="p-3 text-left text-sm text-slate-400">{t("actions")}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {deliveries.map((delivery) => (
-                    <tr key={delivery._id} className="border-t border-gray-800 hover:bg-gray-800/30">
+                    <tr key={`delivery-${delivery._id}`} className="border-t border-gray-800 hover:bg-gray-800/30">
                       <td className="p-3">
                         <div className="font-bold">{delivery.orderId}</div>
                         <div className="text-xs text-slate-500">{formatDate(delivery.createdAt)}</div>
@@ -504,22 +507,22 @@ export default function CourierPage() {
                       <td className="p-3">
                         <div className="space-y-1">
                           <div className="text-sm">
-                            <span className="text-slate-400">Type: </span>
-                            {delivery.packageType}
+                            <span className="text-slate-400">{t("type")}: </span>
+                            {t(delivery.packageType)}
                           </div>
                           <div className="text-sm">
-                            <span className="text-slate-400">Charge: </span>
+                            <span className="text-slate-400">{t("charge")}: </span>
                             <span className="text-green-500">{formatCurrency(delivery.deliveryCharge)}</span>
                           </div>
                           <div className="text-xs text-slate-500">
-                            {delivery.paymentMethod}
+                            {t(delivery.paymentMethod)}
                           </div>
                         </div>
                       </td>
                       
                       <td className="p-3">
                         <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(delivery.status)}`}>
-                          {delivery.status.replace('_', ' ').toUpperCase()}
+                          {t(delivery.status)}
                         </span>
                       </td>
                       
@@ -529,7 +532,7 @@ export default function CourierPage() {
                             <button
                               onClick={() => handleAssignDelivery(delivery._id)}
                               className="p-2 bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 rounded"
-                              title="Assign"
+                              title={t("assign")}
                             >
                               <User size={14} />
                             </button>
@@ -539,7 +542,7 @@ export default function CourierPage() {
                             <button
                               onClick={() => handleStatusUpdate(delivery._id, 'in_transit')}
                               className="p-2 bg-green-500/10 text-green-500 hover:bg-green-500/20 rounded"
-                              title="Start Delivery"
+                              title={t("start_delivery")}
                             >
                               <Truck size={14} />
                             </button>
@@ -549,7 +552,7 @@ export default function CourierPage() {
                             <button
                               onClick={() => handleStatusUpdate(delivery._id, 'delivered')}
                               className="p-2 bg-green-500/10 text-green-500 hover:bg-green-500/20 rounded"
-                              title="Mark Delivered"
+                              title={t("mark_delivered")}
                             >
                               <CheckCircle size={14} />
                             </button>
@@ -558,7 +561,7 @@ export default function CourierPage() {
                           <button
                             onClick={() => handleEditDelivery(delivery)}
                             className="p-2 bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500/20 rounded"
-                            title="Edit"
+                            title={t("edit")}
                           >
                             <Edit2 size={14} />
                           </button>
@@ -566,7 +569,7 @@ export default function CourierPage() {
                           <button
                             onClick={() => handleDeleteDelivery(delivery._id)}
                             className="p-2 bg-red-500/10 text-red-500 hover:bg-red-500/20 rounded"
-                            title="Delete"
+                            title={t("delete")}
                           >
                             <Trash2 size={14} />
                           </button>
@@ -583,19 +586,19 @@ export default function CourierPage() {
         {/* Couriers */}
         <div className="bg-gray-900 rounded-xl border border-gray-800 p-4">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-bold">Couriers ({couriers.length})</h2>
+            <h2 className="text-lg font-bold">{t("couriers")} ({couriers.length})</h2>
             <button
               onClick={() => setShowCourierForm(true)}
               className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg flex items-center gap-2"
             >
               <PlusCircle size={16} />
-              Add Courier
+              {t("add_courier")}
             </button>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {couriers.map((courier) => (
-              <div key={courier._id} className="bg-gray-800/50 p-4 rounded-lg border border-gray-700">
+              <div key={`courier-${courier._id}`} className="bg-gray-800/50 p-4 rounded-lg border border-gray-700">
                 <div className="flex justify-between items-start mb-3">
                   <div>
                     <h3 className="font-bold">{courier.name}</h3>
@@ -603,14 +606,15 @@ export default function CourierPage() {
                       <span className={`px-2 py-1 rounded text-xs ${
                         courier.status === 'active' ? 'bg-green-500/10 text-green-500' : 'bg-gray-500/10 text-gray-500'
                       }`}>
-                        {courier.status}
+                        {t(courier.status)}
                       </span>
-                      <span className="text-sm text-slate-400">{courier.vehicleType}</span>
+                      <span className="text-sm text-slate-400">{t(courier.vehicleType)}</span>
                     </div>
                   </div>
                   <button
                     onClick={() => handleEditCourier(courier)}
                     className="p-1.5 bg-gray-700 hover:bg-gray-600 rounded"
+                    title={t("edit")}
                   >
                     <Edit2 size={14} />
                   </button>
@@ -636,7 +640,7 @@ export default function CourierPage() {
             {couriers.length === 0 && (
               <div className="col-span-full p-6 text-center">
                 <Truck className="mx-auto text-slate-600 mb-3" size={40} />
-                <p className="text-slate-400">No couriers added</p>
+                <p className="text-slate-400">{t("no_couriers_added")}</p>
               </div>
             )}
           </div>
@@ -649,7 +653,7 @@ export default function CourierPage() {
           <div className="bg-gray-900 rounded-xl border border-gray-800 w-full max-w-md">
             <div className="p-5">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-bold">{selectedDelivery ? "Edit Delivery" : "New Delivery"}</h2>
+                <h2 className="text-lg font-bold">{selectedDelivery ? t("edit_delivery") : t("new_delivery")}</h2>
                 <button
                   onClick={() => {
                     setShowDeliveryForm(false);
@@ -663,7 +667,7 @@ export default function CourierPage() {
               
               <form onSubmit={handleDeliverySubmit} className="space-y-4">
                 <div>
-                  <label className="block text-sm text-slate-400 mb-1">Customer Name *</label>
+                  <label className="block text-sm text-slate-400 mb-1">{t("customer_name")} *</label>
                   <input
                     type="text"
                     name="customerName"
@@ -675,7 +679,7 @@ export default function CourierPage() {
                 </div>
                 
                 <div>
-                  <label className="block text-sm text-slate-400 mb-1">Phone *</label>
+                  <label className="block text-sm text-slate-400 mb-1">{t("phone")} *</label>
                   <input
                     type="tel"
                     name="customerPhone"
@@ -687,7 +691,7 @@ export default function CourierPage() {
                 </div>
                 
                 <div>
-                  <label className="block text-sm text-slate-400 mb-1">Address *</label>
+                  <label className="block text-sm text-slate-400 mb-1">{t("address")} *</label>
                   <textarea
                     name="customerAddress"
                     rows="2"
@@ -700,21 +704,21 @@ export default function CourierPage() {
                 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-sm text-slate-400 mb-1">Package Type</label>
+                    <label className="block text-sm text-slate-400 mb-1">{t("package_type")}</label>
                     <select
                       name="packageType"
                       value={deliveryForm.packageType}
                       onChange={handleDeliveryInput}
                       className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white"
                     >
-                      <option value="parcel">Parcel</option>
-                      <option value="document">Document</option>
-                      <option value="fragile">Fragile</option>
+                      <option value="parcel">{t("parcel")}</option>
+                      <option value="document">{t("document")}</option>
+                      <option value="fragile">{t("fragile")}</option>
                     </select>
                   </div>
                   
                   <div>
-                    <label className="block text-sm text-slate-400 mb-1">Delivery Charge</label>
+                    <label className="block text-sm text-slate-400 mb-1">{t("delivery_charge")}</label>
                     <input
                       type="number"
                       name="deliveryCharge"
@@ -734,7 +738,7 @@ export default function CourierPage() {
                     }}
                     className="px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg"
                   >
-                    Cancel
+                    {t("cancel")}
                   </button>
                   <button
                     type="submit"
@@ -742,7 +746,7 @@ export default function CourierPage() {
                     className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg flex items-center gap-2"
                   >
                     {deliveryMutation.isLoading && <Loader2 className="animate-spin" size={16} />}
-                    {selectedDelivery ? "Update" : "Create"}
+                    {selectedDelivery ? t("update") : t("create")}
                   </button>
                 </div>
               </form>
@@ -757,7 +761,7 @@ export default function CourierPage() {
           <div className="bg-gray-900 rounded-xl border border-gray-800 w-full max-w-md">
             <div className="p-5">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-bold">{selectedCourier ? "Edit Courier" : "Add Courier"}</h2>
+                <h2 className="text-lg font-bold">{selectedCourier ? t("edit_courier") : t("add_courier")}</h2>
                 <button
                   onClick={() => {
                     setShowCourierForm(false);
@@ -771,7 +775,7 @@ export default function CourierPage() {
               
               <form onSubmit={handleCourierSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-sm text-slate-400 mb-1">Name *</label>
+                  <label className="block text-sm text-slate-400 mb-1">{t("name")} *</label>
                   <input
                     type="text"
                     name="name"
@@ -783,7 +787,7 @@ export default function CourierPage() {
                 </div>
                 
                 <div>
-                  <label className="block text-sm text-slate-400 mb-1">Phone *</label>
+                  <label className="block text-sm text-slate-400 mb-1">{t("phone")} *</label>
                   <input
                     type="tel"
                     name="phone"
@@ -796,21 +800,21 @@ export default function CourierPage() {
                 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-sm text-slate-400 mb-1">Vehicle Type</label>
+                    <label className="block text-sm text-slate-400 mb-1">{t("vehicle_type")}</label>
                     <select
                       name="vehicleType"
                       value={courierForm.vehicleType}
                       onChange={handleCourierInput}
                       className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white"
                     >
-                      <option value="bike">Bike</option>
-                      <option value="car">Car</option>
-                      <option value="van">Van</option>
+                      <option value="bike">{t("bike")}</option>
+                      <option value="car">{t("car")}</option>
+                      <option value="van">{t("van")}</option>
                     </select>
                   </div>
                   
                   <div>
-                    <label className="block text-sm text-slate-400 mb-1">Vehicle Number *</label>
+                    <label className="block text-sm text-slate-400 mb-1">{t("vehicle_number")} *</label>
                     <input
                       type="text"
                       name="vehicleNumber"
@@ -823,7 +827,7 @@ export default function CourierPage() {
                 </div>
                 
                 <div>
-                  <label className="block text-sm text-slate-400 mb-1">Address</label>
+                  <label className="block text-sm text-slate-400 mb-1">{t("address")}</label>
                   <textarea
                     name="address"
                     rows="2"
@@ -842,7 +846,7 @@ export default function CourierPage() {
                     }}
                     className="px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg"
                   >
-                    Cancel
+                    {t("cancel")}
                   </button>
                   <button
                     type="submit"
@@ -850,7 +854,7 @@ export default function CourierPage() {
                     className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg flex items-center gap-2"
                   >
                     {courierMutation.isLoading && <Loader2 className="animate-spin" size={16} />}
-                    {selectedCourier ? "Update" : "Add"}
+                    {selectedCourier ? t("update") : t("add")}
                   </button>
                 </div>
               </form>
@@ -865,7 +869,7 @@ export default function CourierPage() {
           <div className="bg-gray-900 rounded-xl border border-gray-800 w-full max-w-sm">
             <div className="p-5">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-bold">Assign Delivery</h2>
+                <h2 className="text-lg font-bold">{t("assign_delivery")}</h2>
                 <button
                   onClick={() => setShowAssignForm(false)}
                   className="p-1 hover:bg-gray-800 rounded"
@@ -876,7 +880,7 @@ export default function CourierPage() {
               
               <form onSubmit={handleAssignSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-sm text-slate-400 mb-1">Select Courier *</label>
+                  <label className="block text-sm text-slate-400 mb-1">{t("select_courier")} *</label>
                   <select
                     name="courierId"
                     required
@@ -884,10 +888,10 @@ export default function CourierPage() {
                     onChange={handleAssignInput}
                     className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white"
                   >
-                    <option value="">Select a courier</option>
+                    <option value="">{t("select_a_courier")}</option>
                     {couriers.map(courier => (
-                      <option key={courier._id} value={courier._id}>
-                        {courier.name} ({courier.vehicleType})
+                      <option key={`courier-option-${courier._id}`} value={courier._id}>
+                        {courier.name} ({t(courier.vehicleType)})
                       </option>
                     ))}
                   </select>
@@ -899,7 +903,7 @@ export default function CourierPage() {
                     onClick={() => setShowAssignForm(false)}
                     className="px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg"
                   >
-                    Cancel
+                    {t("cancel")}
                   </button>
                   <button
                     type="submit"
@@ -907,7 +911,7 @@ export default function CourierPage() {
                     className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg flex items-center gap-2"
                   >
                     {assignMutation.isLoading && <Loader2 className="animate-spin" size={16} />}
-                    Assign
+                    {t("assign")}
                   </button>
                 </div>
               </form>
