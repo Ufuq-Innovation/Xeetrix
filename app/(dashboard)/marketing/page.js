@@ -42,7 +42,8 @@ import {
   Palette,
   Layout,
   Settings,
-  Zap
+  Zap,
+  Bell
 } from "lucide-react";
 
 export default function MarketingPage() {
@@ -554,18 +555,18 @@ export default function MarketingPage() {
     }
   };
 
-  const getTypeIcon = (type) => {
-    switch (type) {
-      case 'email': return <Mail size={14} />;
-      case 'sms': return <MessageSquare size={14} />;
-      case 'social': return <Share2 size={14} />;
-      case 'push': return <Bell size={14} />;
-      case 'banner': return <Image size={14} />;
-      case 'popup': return <MessageSquare size={14} />;
-      case 'notification': return <Bell size={14} />;
-      default: return <FileText size={14} />;
-    }
-  };
+const getTypeIcon = (type) => {
+  switch (type) {
+    case 'email': return <Mail size={14} />;
+    case 'sms': return <MessageSquare size={14} />;
+    case 'social': return <Share2 size={14} />;
+    case 'push': return <Bell size={14} />;
+    case 'banner': return <Image size={14} />;
+    case 'popup': return <MessageSquare size={14} />;
+    case 'notification': return <Bell size={14} />;
+    default: return <FileText size={14} />;
+  }
+};
 
   /* ===================== LOADING STATE ===================== */
   if (fetching) {
