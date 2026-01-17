@@ -27,7 +27,7 @@ export default function InventoryPage() {
     if (curr && typeof curr === 'object') {
       return curr.symbol || curr.code || curr.currency || "৳";
     }
-    return "৳";
+    return "৳"; 
   }, [context?.currency]);
 
   const [editingId, setEditingId] = useState(null);
